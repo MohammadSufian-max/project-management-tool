@@ -45,14 +45,21 @@ description: z
   
 startDate: z
   .string()
+  .trim()
   .min(1, "Start date is required.")
   .refine(
     (value) => {
-      const date = new Date(`${value}T00:00:00`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return false;
+      }
+
+      const [year, month, day] = value.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+
       return (
-        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-        !Number.isNaN(date.getTime()) &&
-        date.toISOString().slice(0, 10) === value
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
       );
     },
     "Enter a valid start date.",
@@ -60,14 +67,21 @@ startDate: z
 
 endDate: z
   .string()
+  .trim()
   .min(1, "End date is required.")
   .refine(
     (value) => {
-      const date = new Date(`${value}T00:00:00`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return false;
+      }
+
+      const [year, month, day] = value.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+
       return (
-        /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-        !Number.isNaN(date.getTime()) &&
-        date.toISOString().slice(0, 10) === value
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
       );
     },
     "Enter a valid end date.",
