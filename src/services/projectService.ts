@@ -1,39 +1,39 @@
 
-import type { Employee, Project } from "../types";
-import { mockProjects } from "../data/mockProjects";
-import { mockEmployees } from "../data/mockEmployees";
-import { readStorage, writeStorage } from "./storageService";
+import type { Project } from "../types";
+import { useProjectStore } from "../store/projectStore";
+import { useEmployeeStore } from "../store/employeeStore";
 
-const PROJECTS_KEY = "pmt_projects";
-const EMPLOYEES_KEY = "pmt_employees";
+
+
 
 function delay(ms = 300): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getStoredEmployees(): Employee[] {
-  return readStorage<Employee[]>(EMPLOYEES_KEY, mockEmployees);
-}
 
 export async function getProjects(): Promise<Project[]> {
   await delay();
 
-  return readStorage<Project[]>(PROJECTS_KEY, mockProjects);
+  return useProjectStore.getState().projects;
 }
 
-export async function createProject(
-  project: Project,
-): Promise<Project> {
+
+ export async function createProject(project: Project): Promise<Project> {
   await delay();
 
-  const projects = readStorage<Project[]>(PROJECTS_KEY, mockProjects);
-  const employees = getStoredEmployees();
+  const store = useProjectStore.getState();
+  const projects = store.projects;
+  const employees = useEmployeeStore.getState().employees;
 
   const manager = employees.find(
-    (employee) => employee.id === project.projectManagerId,
+    (employee) => employee.id === project.projectManagerId
   );
 
-  if (!manager || manager.status !== "Active" || manager.role !== "Project Manager") {
+  if (
+    !manager ||
+    manager.status !== "Active" ||
+    manager.role !== "Project Manager"
+  ) {
     throw new Error("Select an active Project Manager.");
   }
 
@@ -42,6 +42,7 @@ export async function createProject(
   if (uniqueTeamMemberIds.length !== project.teamMemberIds.length) {
     throw new Error("Duplicate team members are not allowed.");
   }
+  
 
   const invalidMember = uniqueTeamMemberIds.some((id) => {
     const employee = employees.find((item) => item.id === id);
@@ -56,33 +57,35 @@ export async function createProject(
     throw new Error("Project end date cannot be before its start date.");
   }
 
-  const updatedProjects = [...projects, project];
+  if (projects.some((item) => item.id === project.id)) {
+    throw new Error("Project already exists.");
+  }
 
-  writeStorage(PROJECTS_KEY, updatedProjects);
+  store.addProject(project);
 
   return project;
 }
 
 
 export async function updateProject(
-  updatedProject: Project,
+  updatedProject: Project
 ): Promise<Project> {
   await delay();
 
-  const projects = readStorage<Project[]>(PROJECTS_KEY, mockProjects);
-  const employees = getStoredEmployees();
+  const store = useProjectStore.getState();
+  const projects = store.projects;
+  const employees = useEmployeeStore.getState().employees;
 
   const existingProject = projects.find(
-    (project) => project.id === updatedProject.id,
+    (project) => project.id === updatedProject.id
   );
 
   if (!existingProject) {
     throw new Error("Project not found.");
   }
 
-  // The project manager must still be an active Project Manager.
   const manager = employees.find(
-    (employee) => employee.id === updatedProject.projectManagerId,
+    (employee) => employee.id === updatedProject.projectManagerId
   );
 
   if (
@@ -93,15 +96,12 @@ export async function updateProject(
     throw new Error("Select an active Project Manager.");
   }
 
-  // Prevent duplicate team members.
   const uniqueTeamMemberIds = [...new Set(updatedProject.teamMemberIds)];
 
   if (uniqueTeamMemberIds.length !== updatedProject.teamMemberIds.length) {
     throw new Error("Duplicate team members are not allowed.");
   }
 
-  // Only newly added team members must be active.
-  // Existing inactive members do not block unrelated project edits.
   const existingMemberIds = new Set(existingProject.teamMemberIds);
 
   const invalidNewMember = uniqueTeamMemberIds.some((id) => {
@@ -110,7 +110,6 @@ export async function updateProject(
     }
 
     const employee = employees.find((item) => item.id === id);
-
     return !employee || employee.status !== "Active";
   });
 
@@ -122,23 +121,22 @@ export async function updateProject(
     throw new Error("Project end date cannot be before its start date.");
   }
 
-  const updatedProjects = projects.map((project) =>
-    project.id === updatedProject.id ? updatedProject : project,
-  );
-
-  writeStorage(PROJECTS_KEY, updatedProjects);
+  store.updateProject(updatedProject);
 
   return updatedProject;
 }
 
+
 export async function archiveProject(
-  projectId: string,
+  projectId: string
 ): Promise<Project> {
   await delay();
 
-  const projects = readStorage<Project[]>(PROJECTS_KEY, mockProjects);
+  const store = useProjectStore.getState();
 
-  const project = projects.find((item) => item.id === projectId);
+  const project = store.projects.find(
+    (item) => item.id === projectId
+  );
 
   if (!project) {
     throw new Error("Project not found.");
@@ -153,11 +151,7 @@ export async function archiveProject(
     isArchived: true,
   };
 
-  const updatedProjects = projects.map((item) =>
-    item.id === projectId ? archivedProject : item,
-  );
-
-  writeStorage(PROJECTS_KEY, updatedProjects);
+  store.updateProject(archivedProject);
 
   return archivedProject;
 }

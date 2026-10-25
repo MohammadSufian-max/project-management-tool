@@ -1,24 +1,20 @@
 
-import type { Employee, Project, Task } from "../types";
-import { mockTasks } from "../data/mockTasks";
-import { mockProjects } from "../data/mockProjects";
-import { mockEmployees } from "../data/mockEmployees";
-import { readStorage, writeStorage } from "./storageService";
+import type { Task } from "../types";
+import { useTaskStore } from "../store/taskStore";
+import { useProjectStore } from "../store/projectStore";
+import { useEmployeeStore } from "../store/employeeStore";
 
-const TASKS_KEY = "pmt_tasks";
-const PROJECTS_KEY = "pmt_projects";
-const EMPLOYEES_KEY = "pmt_employees";
 
 function delay(ms = 300): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getStoredProjects(): Project[] {
-  return readStorage<Project[]>(PROJECTS_KEY, mockProjects);
+function getStoredProjects() {
+  return useProjectStore.getState().projects;
 }
 
-function getStoredEmployees(): Employee[] {
-  return readStorage<Employee[]>(EMPLOYEES_KEY, mockEmployees);
+function getStoredEmployees() {
+  return useEmployeeStore.getState().employees;
 }
 
 function validateTaskAssignment(task: Task): void {
@@ -93,8 +89,7 @@ function validateTaskAssignment(task: Task): void {
 
 export async function getTasks(): Promise<Task[]> {
   await delay();
-
-  return readStorage<Task[]>(TASKS_KEY, mockTasks);
+  return useTaskStore.getState().tasks;
 }
 
 export async function createTask(task: Task): Promise<Task> {
@@ -102,22 +97,26 @@ export async function createTask(task: Task): Promise<Task> {
 
   validateTaskAssignment(task);
 
-  const tasks = readStorage<Task[]>(TASKS_KEY, mockTasks);
+  const store = useTaskStore.getState();
 
-  const updatedTasks = [...tasks, task];
+  if (store.tasks.some((item) => item.id === task.id)) {
+    throw new Error("Task already exists.");
+  }
 
-  writeStorage(TASKS_KEY, updatedTasks);
+  store.addTask(task);
 
   return task;
 }
 
-export async function updateTask(updatedTask: Task): Promise<Task> {
+export async function updateTask(
+  updatedTask: Task
+): Promise<Task> {
   await delay();
 
-  const tasks = readStorage<Task[]>(TASKS_KEY, mockTasks);
+  const store = useTaskStore.getState();
 
-  const existingTask = tasks.find(
-    (task) => task.id === updatedTask.id,
+  const existingTask = store.tasks.find(
+    (task) => task.id === updatedTask.id
   );
 
   if (!existingTask) {
@@ -126,27 +125,24 @@ export async function updateTask(updatedTask: Task): Promise<Task> {
 
   validateTaskAssignment(updatedTask);
 
-  const updatedTasks = tasks.map((task) =>
-    task.id === updatedTask.id ? updatedTask : task,
-  );
-
-  writeStorage(TASKS_KEY, updatedTasks);
+  store.updateTask(updatedTask);
 
   return updatedTask;
 }
 
+
 export async function deleteTask(taskId: string): Promise<void> {
   await delay();
 
-  const tasks = readStorage<Task[]>(TASKS_KEY, mockTasks);
+  const store = useTaskStore.getState();
 
-  const taskExists = tasks.some((task) => task.id === taskId);
+  const taskExists = store.tasks.some(
+    (task) => task.id === taskId
+  );
 
   if (!taskExists) {
     throw new Error("Task not found.");
   }
 
-  const updatedTasks = tasks.filter((task) => task.id !== taskId);
-
-  writeStorage(TASKS_KEY, updatedTasks);
+  store.deleteTask(taskId);
 }

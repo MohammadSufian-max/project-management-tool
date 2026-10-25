@@ -1,9 +1,6 @@
 
 import type { Employee } from "../types";
-import { mockEmployees } from "../data/mockEmployees";
-import { readStorage, writeStorage } from "./storageService";
-
-const STORAGE_KEY = "pmt_employees";
+import { useEmployeeStore } from "../store/employeeStore";
 
 function delay(ms = 300): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -11,8 +8,7 @@ function delay(ms = 300): Promise<void> {
 
 export async function getEmployees(): Promise<Employee[]> {
   await delay();
-
-  return readStorage<Employee[]>(STORAGE_KEY, mockEmployees);
+  return useEmployeeStore.getState().employees;
 }
 
 export async function createEmployee(
@@ -20,12 +16,9 @@ export async function createEmployee(
 ): Promise<Employee> {
   await delay();
 
-  const employees = readStorage<Employee[]>(
-    STORAGE_KEY,
-    mockEmployees,
-  );
+  const store = useEmployeeStore.getState();
 
-  const emailExists = employees.some(
+  const emailExists = store.employees.some(
     (item) => item.email.toLowerCase() === employee.email.toLowerCase(),
   );
 
@@ -33,9 +26,7 @@ export async function createEmployee(
     throw new Error("An employee with this email already exists.");
   }
 
-  const updatedEmployees = [...employees, employee];
-
-  writeStorage(STORAGE_KEY, updatedEmployees);
+  store.addEmployee(employee);
 
   return employee;
 }
@@ -45,12 +36,9 @@ export async function updateEmployee(
 ): Promise<Employee> {
   await delay();
 
-  const employees = readStorage<Employee[]>(
-    STORAGE_KEY,
-    mockEmployees,
-  );
+  const store = useEmployeeStore.getState();
 
-  const emailExists = employees.some(
+  const emailExists = store.employees.some(
     (item) =>
       item.id !== updatedEmployee.id &&
       item.email.toLowerCase() === updatedEmployee.email.toLowerCase(),
@@ -60,11 +48,7 @@ export async function updateEmployee(
     throw new Error("An employee with this email already exists.");
   }
 
-  const updatedEmployees = employees.map((employee) =>
-    employee.id === updatedEmployee.id ? updatedEmployee : employee,
-  );
-
-  const employeeExists = employees.some(
+  const employeeExists = store.employees.some(
     (employee) => employee.id === updatedEmployee.id,
   );
 
@@ -72,7 +56,7 @@ export async function updateEmployee(
     throw new Error("Employee not found.");
   }
 
-  writeStorage(STORAGE_KEY, updatedEmployees);
+  store.updateEmployee(updatedEmployee);
 
   return updatedEmployee;
 }

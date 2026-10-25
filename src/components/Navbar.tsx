@@ -37,7 +37,7 @@ export default function Navbar() {
 
   return (
     <header className="border-b bg-white">
-      <div className="flex flex-col justify-between gap-4 px-4 py-4 lg:flex-row lg:items-center lg:px-6">
+      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <button
           type="button"
           onClick={() => navigate("/dashboard")}
@@ -47,7 +47,10 @@ export default function Navbar() {
           <p className="text-sm text-slate-500">Project Management Tool</p>
         </button>
 
-        <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 lg:w-auto lg:overflow-visible">
+        <nav
+          aria-label="Main navigation"
+          className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto lg:flex-nowrap"
+        >
           {visibleLinks.map((link) => {
             const Icon = link.icon;
             const isActive = location.pathname === link.path;
@@ -57,18 +60,19 @@ export default function Navbar() {
                 key={link.path}
                 type="button"
                 onClick={() => navigate(link.path)}
-                className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition ${
+                aria-current={isActive ? "page" : undefined}
+                className={`flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition sm:justify-start ${
                   isActive
                     ? "bg-blue-50 text-blue-700"
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                <Icon size={17} />
-                {link.label}
+                <Icon size={17} className="shrink-0" />
+                <span>{link.label}</span>
               </button>
             );
           })}
-        </div>
+        </nav>
 
         <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:justify-start">
           <div className="hidden text-right sm:block">
@@ -80,14 +84,14 @@ export default function Navbar() {
             </p>
           </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
             <UserRound size={20} />
           </div>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
           >
             <LogOut size={16} />
             Logout

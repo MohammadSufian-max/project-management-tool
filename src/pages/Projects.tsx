@@ -318,8 +318,10 @@ const filteredProjects = useMemo(() => {
             <p className="p-6 text-slate-500">No projects found.</p>
           ) : (
             <div className="overflow-x-auto">
-              
-<table className="w-full text-left text-sm">
+        <div className="w-full overflow-x-auto">
+          
+                
+<table className="w-full min-w-[1000px] text-left text-sm">
   <thead className="bg-slate-50 text-slate-500">
     <tr>
       <th className="px-5 py-4 font-medium">Project ID</th>
@@ -446,18 +448,18 @@ const filteredProjects = useMemo(() => {
     })}
   </tbody>
 </table>
-
+</div>
             </div>
           )}
         </section>
 
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:items-center sm:p-4">
             <section
               role="dialog"
               aria-modal="true"
               aria-labelledby="project-form-title"
-              className="my-6 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
+             className="my-3 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:my-6 sm:p-6"
             >
               <div className="mb-6 flex items-center justify-between">
                 <div>

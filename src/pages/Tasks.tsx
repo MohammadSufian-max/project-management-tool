@@ -281,7 +281,7 @@ export default function Tasks() {
             <p className="p-6 text-slate-500">No matching tasks found.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[900px] text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
                     <th className="px-5 py-4 font-medium">Task</th>
@@ -372,8 +372,8 @@ export default function Tasks() {
         </section>
 
         {showForm && isAdmin && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
-            <section role="dialog" aria-modal="true" aria-labelledby="task-form-title" className="my-6 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:items-center sm:p-4">
+            <section role="dialog" aria-modal="true" aria-labelledby="task-form-title" className="my-3 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:my-6 sm:p-6">
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <h2 id="task-form-title" className="text-xl font-bold">

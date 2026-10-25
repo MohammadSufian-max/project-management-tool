@@ -10,6 +10,11 @@ import { getEmployees, createEmployee, updateEmployee } from "../services/employ
 import { useAuthStore } from "../store/authStore";
 import Navbar from "../components/Navbar";
 import type { Employee } from "../types";
+import { DatePicker } from "../components/ui/date-picker";
+import EmptyState from "../components/common/EmptyState";
+import Spinner from "../components/common/Spinner";
+import ConfirmDialog from "../components/common/ConfirmDialog";
+
 
 const employeeSchema = z.object({
   
@@ -72,6 +77,7 @@ export default function Employees() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
   const [formError, setFormError] = useState("");
+  const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
 
   const { data: employees = [], isLoading, isError } = useQuery({
     queryKey: ["employees"],
@@ -239,14 +245,17 @@ export default function Employees() {
           </div>
 
           {isLoading ? (
-            <p className="p-6 text-slate-500">Loading employees...</p>
+            <Spinner label="Loading employees..." />
           ) : isError ? (
             <p className="p-6 text-red-600">Could not load employees. Refresh and try again.</p>
           ) : filteredEmployees.length === 0 ? (
-            <p className="p-6 text-slate-500">No matching employees found.</p>
+            <EmptyState
+  title="No employees found"
+  description="Try another search or add a new employee."
+/>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[900px] text-left text-sm">
                 
 <thead className="bg-slate-50 text-slate-500">
   <tr>
@@ -324,17 +333,7 @@ export default function Employees() {
           <button
             type="button"
             disabled={toggleMutation.isPending}
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Are you sure you want to ${
-                    employee.status === "Active" ? "deactivate" : "activate"
-                  } ${employee.fullName}?`
-                )
-              ) {
-                toggleMutation.mutate(employee);
-              }
-            }}
+            onClick={() => setEmployeeToToggle(employee)}
             className="text-sm text-slate-600 underline disabled:opacity-50"
           >
             {employee.status === "Active" ? "Deactivate" : "Activate"}
@@ -351,12 +350,12 @@ export default function Employees() {
         </section>
 
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:items-center sm:p-4">
             <section
               role="dialog"
               aria-modal="true"
               aria-labelledby="employee-form-title"
-              className="my-6 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl"
+              className="my-3 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:my-6 sm:p-6"
             >
               <div className="mb-6 flex items-center justify-between">
                 <div>
@@ -413,7 +412,17 @@ export default function Employees() {
                   </FormField>
 
                   <FormField label="Joining Date" error={form.formState.errors.joiningDate?.message}>
-                    <input {...form.register("joiningDate")} type="date" className="form-input" />
+                    <DatePicker
+  value={form.watch("joiningDate")}
+  onChange={(value) => {
+    form.setValue("joiningDate", value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  }}
+  placeholder="Select joining date"
+  className="h-10"
+/>
                   </FormField>
 
                   <FormField label="Status" error={form.formState.errors.status?.message}>
@@ -512,8 +521,32 @@ export default function Employees() {
         </button>
       </div>
     </section>
+    
   </div>
         )}
+      
+<ConfirmDialog
+  open={employeeToToggle !== null}
+  title={`${
+    employeeToToggle?.status === "Active" ? "Deactivate" : "Activate"
+  } Employee`}
+  description={`Are you sure you want to ${
+    employeeToToggle?.status === "Active" ? "deactivate" : "activate"
+  } ${employeeToToggle?.fullName ?? "this employee"}?`}
+  confirmLabel={
+    employeeToToggle?.status === "Active" ? "Deactivate" : "Activate"
+  }
+  onCancel={() => setEmployeeToToggle(null)}
+  onConfirm={() => {
+    if (employeeToToggle) {
+      toggleMutation.mutate(employeeToToggle, {
+        onSettled: () => setEmployeeToToggle(null),
+      });
+    }
+  }}
+  isPending={toggleMutation.isPending}
+/>
+
       </main>
     </div>
   );
