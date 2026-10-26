@@ -11,6 +11,14 @@ import { getProjects } from "../services/projectService";
 import { getEmployees } from "../services/employeeService";
 import { useAuthStore } from "../store/authStore";
 import Navbar from "../components/Navbar";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "../components/ui/pagination";
 import type { Project, Task } from "../types";
 
 const taskSchema = z.object({
@@ -45,6 +53,8 @@ export default function Tasks() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+const pageSize = 10;
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [formError, setFormError] = useState("");
@@ -140,6 +150,16 @@ export default function Tasks() {
       ].some((value) => value.toLowerCase().includes(query));
     });
   }, [tasks, projects, employees, isAdmin, currentEmployeeId, search]);
+
+  const totalPages = Math.ceil(visibleTasks.length / pageSize);
+
+const visiblePage = Math.min(currentPage, Math.max(totalPages, 1));
+
+const paginatedTasks = useMemo(() => {
+  const startIndex = (visiblePage - 1) * pageSize;
+
+  return visibleTasks.slice(startIndex, startIndex + pageSize);
+}, [visibleTasks, visiblePage]);
 
   function openAddForm() {
     setEditingTask(null);
@@ -266,7 +286,10 @@ export default function Tasks() {
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+  setSearch(event.target.value);
+  setCurrentPage(1);
+}}
                 placeholder="Search tasks, projects or assignees..."
                 className="w-full rounded-lg border py-3 pl-10 pr-4 outline-none focus:border-blue-500"
               />
@@ -294,7 +317,7 @@ export default function Tasks() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleTasks.map((task) => {
+                  {paginatedTasks.map((task) => {
                     const project = projects.find((item) => item.id === task.projectId);
                     const assignee = employees.find((item) => item.id === task.assigneeId);
                     const isOwnTask = task.assigneeId === currentEmployeeId;
@@ -369,10 +392,58 @@ export default function Tasks() {
               </table>
             </div>
           )}
+
+          
+<div className="flex flex-col items-center gap-3 border-t px-4 py-4">
+  <p className="text-center text-sm text-slate-500">
+    Showing {(visiblePage - 1) * pageSize + 1} to{" "}
+    {Math.min(visiblePage * pageSize, visibleTasks.length)} of{" "}
+    {visibleTasks.length} tasks
+  </p>
+
+  {totalPages > 1 && (
+    <Pagination>
+      <PaginationContent className="flex-wrap">
+        <PaginationItem>
+          <PaginationPrevious
+            onClick={() =>
+              setCurrentPage((page) => Math.max(1, page - 1))
+            }
+            disabled={visiblePage === 1}
+          />
+        </PaginationItem>
+
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+          (page) => (
+            <PaginationItem key={page}>
+              <PaginationLink
+                isActive={visiblePage === page}
+                onClick={() => setCurrentPage(page)}
+                aria-label={`Go to page ${page}`}
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+
+        <PaginationItem>
+          <PaginationNext
+            onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+            }
+            disabled={visiblePage === totalPages}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  )}
+</div>
+
         </section>
 
         {showForm && isAdmin && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:items-center sm:p-4">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:p-4">
             <section role="dialog" aria-modal="true" aria-labelledby="task-form-title" className="my-3 w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl sm:my-6 sm:p-6">
               <div className="mb-6 flex items-center justify-between">
                 <div>

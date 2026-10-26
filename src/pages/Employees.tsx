@@ -15,6 +15,15 @@ import EmptyState from "../components/common/EmptyState";
 import Spinner from "../components/common/Spinner";
 import ConfirmDialog from "../components/common/ConfirmDialog";
 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "../components/ui/pagination";
+
 
 const employeeSchema = z.object({
   
@@ -73,6 +82,8 @@ export default function Employees() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+const pageSize = 10;
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
@@ -136,6 +147,16 @@ export default function Employees() {
       ].some((value) => value.toLowerCase().includes(query))
     );
   }, [employees, search]);
+
+  const totalPages = Math.ceil(filteredEmployees.length / pageSize);
+
+const paginatedEmployees = useMemo(() => {
+  const startIndex = (currentPage - 1) * pageSize;
+
+  return filteredEmployees.slice(startIndex, startIndex + pageSize);
+}, [filteredEmployees, currentPage]);
+
+const visiblePage = Math.min(currentPage, Math.max(totalPages, 1));
 
   function openAddForm() {
     setEditingEmployee(null);
@@ -237,7 +258,10 @@ export default function Employees() {
               />
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+  setSearch(event.target.value);
+  setCurrentPage(1);
+}}
                 placeholder="Search name, email, role..."
                 className="w-full rounded-lg border py-3 pl-10 pr-4 outline-none focus:border-blue-500"
               />
@@ -254,7 +278,8 @@ export default function Employees() {
   description="Try another search or add a new employee."
 />
           ) : (
-            <div className="overflow-x-auto">
+  <>
+    <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left text-sm">
                 
 <thead className="bg-slate-50 text-slate-500">
@@ -271,7 +296,7 @@ export default function Employees() {
 </thead>
 
 <tbody>
-  {filteredEmployees.map((employee) => (
+  {paginatedEmployees.map((employee) => (
     <tr key={employee.id} className="border-t hover:bg-slate-50">
       <td className="px-5 py-4 text-slate-600">
         {employee.id}
@@ -346,7 +371,54 @@ export default function Employees() {
 
               </table>
             </div>
-          )}
+            
+<div className="flex flex-col items-center gap-3 border-t px-4 py-4">
+  <p className="text-center text-sm text-slate-500">
+    Showing {(visiblePage - 1) * pageSize + 1} to{" "}
+    {Math.min(visiblePage * pageSize, filteredEmployees.length)} of{" "}
+    {filteredEmployees.length} employees
+  </p>
+
+  {totalPages > 1 && (
+    <Pagination>
+      <PaginationContent className="flex-wrap">
+        <PaginationItem>
+          <PaginationPrevious
+            onClick={() =>
+              setCurrentPage((page) => Math.max(1, page - 1))
+            }
+            disabled={visiblePage === 1}
+          />
+        </PaginationItem>
+
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+          (page) => (
+            <PaginationItem key={page}>
+              <PaginationLink
+                isActive={visiblePage === page}
+                onClick={() => setCurrentPage(page)}
+                aria-label={`Go to page ${page}`}
+              >
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+
+        <PaginationItem>
+          <PaginationNext
+            onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+            }
+            disabled={visiblePage === totalPages}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  )}
+</div>
+  </>
+)}
         </section>
 
         {showForm && (

@@ -11,6 +11,7 @@ import { updateEmployee } from "../services/employeeService";
 import { useAuthStore } from "../store/authStore";
 import { getEmployees } from "../services/employeeService";
 import Navbar from "../components/Navbar";
+import { useProfileStore } from "../store/profileStore";
 
 const profileSchema = z.object({
   fullName: z
@@ -31,16 +32,8 @@ export default function Profile() {
   const queryClient = useQueryClient();
 const [isEditing, setIsEditing] = useState(false);
 const [saveMessage, setSaveMessage] = useState("");
-const [adminProfile, setAdminProfile] = useState<ProfileFormValues>(() => {
-  try {
-    const saved = localStorage.getItem("pmt-admin-profile");
-    return saved
-      ? JSON.parse(saved)
-      : { fullName: "Super Admin", phone: "" };
-  } catch {
-    return { fullName: "Super Admin", phone: "" };
-  }
-});
+const adminProfile = useProfileStore((state) => state.adminProfile);
+const setAdminProfile = useProfileStore((state) => state.setAdminProfile);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["employees"],
@@ -60,26 +53,18 @@ const [adminProfile, setAdminProfile] = useState<ProfileFormValues>(() => {
 },
 });
 function handleProfileSubmit(values: ProfileFormValues) {
-  if (user?.role === "Super Admin") {
-    const updatedProfile = {
-      fullName: values.fullName.trim(),
-      phone: values.phone.trim(),
-    };
+    if (user?.role === "Super Admin") {
+  const updatedProfile = {
+    fullName: values.fullName.trim(),
+    phone: values.phone.trim(),
+  };
 
-    try {
-      localStorage.setItem(
-        "pmt-admin-profile",
-        JSON.stringify(updatedProfile),
-      );
-      setAdminProfile(updatedProfile);
-      setIsEditing(false);
-      setSaveMessage("Profile updated successfully.");
-    } catch {
-      setSaveMessage("Unable to save profile. Please try again.");
-    }
+  setAdminProfile(updatedProfile);
+  setIsEditing(false);
+  setSaveMessage("Profile updated successfully.");
 
-    return;
-  }
+  return;
+}
 
   updateMutation.mutate(values);
 }
