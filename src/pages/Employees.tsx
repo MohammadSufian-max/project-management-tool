@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Pencil, Plus, Search, Users, X } from "lucide-react";
 
 import { getEmployees, createEmployee, updateEmployee } from "../services/employeeService";
@@ -99,6 +99,11 @@ const pageSize = 10;
     resolver: zodResolver(employeeSchema),
     defaultValues: emptyValues,
   });
+
+  const joiningDate = useWatch({
+  control: form.control,
+  name: "joiningDate",
+});
 
   const saveMutation = useMutation({
     mutationFn: async (values: EmployeeFormValues) => {
@@ -485,7 +490,7 @@ const visiblePage = Math.min(currentPage, Math.max(totalPages, 1));
 
                   <FormField label="Joining Date" error={form.formState.errors.joiningDate?.message}>
                     <DatePicker
-  value={form.watch("joiningDate")}
+  value={joiningDate}
   onChange={(value) => {
     form.setValue("joiningDate", value, {
       shouldValidate: true,

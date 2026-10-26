@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { ListTodo, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 
 import { getTasks, createTask, updateTask, deleteTask } from "../services/taskService";
@@ -84,7 +84,10 @@ const pageSize = 10;
     defaultValues: emptyValues,
   });
 
-  const selectedProjectId = form.watch("projectId");
+  const selectedProjectId = useWatch({
+  control: form.control,
+  name: "projectId",
+});
   const selectedProject = projects.find((project) => project.id === selectedProjectId);
 
   const eligibleAssignees = employees.filter(
@@ -129,27 +132,29 @@ const pageSize = 10;
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
-  const visibleTasks = useMemo(() => {
-    const roleTasks = isAdmin
-      ? tasks
-      : tasks.filter((task) => task.assigneeId === currentEmployeeId);
+ 
+const visibleTasks = (() => {
+  const roleTasks = isAdmin
+    ? tasks
+    : tasks.filter((task) => task.assigneeId === currentEmployeeId);
 
-    const query = search.trim().toLowerCase();
+  const query = search.trim().toLowerCase();
 
-    return roleTasks.filter((task) => {
-      const project = projects.find((item) => item.id === task.projectId);
-      const assignee = employees.find((item) => item.id === task.assigneeId);
+  return roleTasks.filter((task) => {
+    const project = projects.find((item) => item.id === task.projectId);
+    const assignee = employees.find((item) => item.id === task.assigneeId);
 
-      return [
-        task.title,
-        task.description,
-        task.status,
-        task.priority,
-        project?.name ?? "",
-        assignee?.fullName ?? "",
-      ].some((value) => value.toLowerCase().includes(query));
-    });
-  }, [tasks, projects, employees, isAdmin, currentEmployeeId, search]);
+    return [
+      task.title,
+      task.description,
+      task.status,
+      task.priority,
+      project?.name ?? "",
+      assignee?.fullName ?? "",
+    ].some((value) => value.toLowerCase().includes(query));
+  });
+})();
+
 
   const totalPages = Math.ceil(visibleTasks.length / pageSize);
 
