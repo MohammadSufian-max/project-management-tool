@@ -18,7 +18,7 @@ import Navbar from "../components/Navbar";
 export default function Dashboard() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role === "Super Admin";
-  const employeeId = user?.employeeId;
+const employeeId = user?.employeeId ?? user?.id;
 
   const {
     data: allProjects = [],

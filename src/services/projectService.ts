@@ -1,158 +1,144 @@
-
+import axios from "axios";
 import type { Project } from "../types";
+import api from "./api";
 import { useProjectStore } from "../store/projectStore";
-import { useEmployeeStore } from "../store/employeeStore";
 
-
-
-
-function delay(ms = 300): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface BackendProject {
+  id: string;
+  name: string;
+  description: string;
+  projectManagerId: string;
+  teamMemberIds: string[];
+  startDate: string;
+  endDate: string;
+  status: Project["status"];
+  createdAt: string;
+  isArchived: boolean;
 }
 
+function mapProject(project: BackendProject): Project {
+  return {
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    projectManagerId: project.projectManagerId,
+    teamMemberIds: project.teamMemberIds ?? [],
+    startDate: project.startDate,
+    endDate: project.endDate,
+    status: project.status,
+    createdAt: project.createdAt,
+    isArchived: project.isArchived,
+  };
+}
 
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message || "Project request failed.";
+  }
+
+  return error instanceof Error
+    ? error.message
+    : "Something went wrong.";
+}
+
+// GET: Fetch projects
 export async function getProjects(): Promise<Project[]> {
-  await delay();
+  try {
+    const response = await api.get("/projects");
 
-  return useProjectStore.getState().projects;
+    const projects: Project[] = response.data.data.map(
+      mapProject
+    );
+
+    useProjectStore.getState().setProjects(projects);
+
+    return projects;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
 }
 
+// POST: Create project
+export async function createProject(
+  project: Project
+): Promise<Project> {
+  try {
+    const response = await api.post("/projects", {
+      name: project.name,
+      description: project.description,
+      projectManagerId: project.projectManagerId,
+      teamMemberIds: project.teamMemberIds,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      status: project.status,
+      isArchived: project.isArchived ?? false,
+    });
 
- export async function createProject(project: Project): Promise<Project> {
-  await delay();
+    const newProject = mapProject(response.data.data);
 
-  const store = useProjectStore.getState();
-  const projects = store.projects;
-  const employees = useEmployeeStore.getState().employees;
+    useProjectStore.getState().addProject(newProject);
 
-  const manager = employees.find(
-    (employee) => employee.id === project.projectManagerId
-  );
-
-  if (
-    !manager ||
-    manager.status !== "Active" ||
-    manager.role !== "Project Manager"
-  ) {
-    throw new Error("Select an active Project Manager.");
+    return newProject;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-
-  const uniqueTeamMemberIds = [...new Set(project.teamMemberIds)];
-
-  if (uniqueTeamMemberIds.length !== project.teamMemberIds.length) {
-    throw new Error("Duplicate team members are not allowed.");
-  }
-  
-
-  const invalidMember = uniqueTeamMemberIds.some((id) => {
-    const employee = employees.find((item) => item.id === id);
-    return !employee || employee.status !== "Active";
-  });
-
-  if (invalidMember) {
-    throw new Error("All team members must be active employees.");
-  }
-
-  if (project.endDate < project.startDate) {
-    throw new Error("Project end date cannot be before its start date.");
-  }
-
-  if (projects.some((item) => item.id === project.id)) {
-    throw new Error("Project already exists.");
-  }
-
-  store.addProject(project);
-
-  return project;
 }
 
-
+// PUT: Update project
 export async function updateProject(
   updatedProject: Project
 ): Promise<Project> {
-  await delay();
+  try {
+    const response = await api.put(
+      `/projects/${updatedProject.id}`,
+      {
+        name: updatedProject.name,
+        description: updatedProject.description,
+        projectManagerId: updatedProject.projectManagerId,
+        teamMemberIds: updatedProject.teamMemberIds,
+        startDate: updatedProject.startDate,
+        endDate: updatedProject.endDate,
+        status: updatedProject.status,
+        isArchived: updatedProject.isArchived ?? false,
+      }
+    );
 
-  const store = useProjectStore.getState();
-  const projects = store.projects;
-  const employees = useEmployeeStore.getState().employees;
+    const project = mapProject(response.data.data);
 
-  const existingProject = projects.find(
-    (project) => project.id === updatedProject.id
-  );
+    useProjectStore.getState().updateProject(project);
 
-  if (!existingProject) {
-    throw new Error("Project not found.");
+    return project;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-
-  const manager = employees.find(
-    (employee) => employee.id === updatedProject.projectManagerId
-  );
-
-  if (
-    !manager ||
-    manager.status !== "Active" ||
-    manager.role !== "Project Manager"
-  ) {
-    throw new Error("Select an active Project Manager.");
-  }
-
-  const uniqueTeamMemberIds = [...new Set(updatedProject.teamMemberIds)];
-
-  if (uniqueTeamMemberIds.length !== updatedProject.teamMemberIds.length) {
-    throw new Error("Duplicate team members are not allowed.");
-  }
-
-  const existingMemberIds = new Set(existingProject.teamMemberIds);
-
-  const invalidNewMember = uniqueTeamMemberIds.some((id) => {
-    if (existingMemberIds.has(id)) {
-      return false;
-    }
-
-    const employee = employees.find((item) => item.id === id);
-    return !employee || employee.status !== "Active";
-  });
-
-  if (invalidNewMember) {
-    throw new Error("New team members must be active employees.");
-  }
-
-  if (updatedProject.endDate < updatedProject.startDate) {
-    throw new Error("Project end date cannot be before its start date.");
-  }
-
-  store.updateProject(updatedProject);
-
-  return updatedProject;
 }
 
-
+// DELETE: Archive project
 export async function archiveProject(
   projectId: string
 ): Promise<Project> {
-  await delay();
+  try {
+    await api.delete(`/projects/${projectId}`);
 
-  const store = useProjectStore.getState();
+    const store = useProjectStore.getState();
 
-  const project = store.projects.find(
-    (item) => item.id === projectId
-  );
+    const existingProject = store.projects.find(
+      (project) => project.id === projectId
+    );
 
-  if (!project) {
-    throw new Error("Project not found.");
+    if (!existingProject) {
+      throw new Error("Project not found.");
+    }
+
+    const archivedProject: Project = {
+      ...existingProject,
+      isArchived: true,
+    };
+
+    store.updateProject(archivedProject);
+
+    return archivedProject;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-
-  if (project.isArchived) {
-    throw new Error("Project is already archived.");
-  }
-
-  const archivedProject: Project = {
-    ...project,
-    isArchived: true,
-  };
-
-  store.updateProject(archivedProject);
-
-  return archivedProject;
 }
-

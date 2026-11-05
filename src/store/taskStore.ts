@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Task } from "../types";
-import { mockTasks } from "../data/mockTasks";
 
 interface TaskState {
   tasks: Task[];
@@ -11,28 +10,10 @@ interface TaskState {
   deleteTask: (taskId: string) => void;
 }
 
-function getInitialTasks(): Task[] {
-  try {
-    const savedData = localStorage.getItem("pmt_tasks");
-
-    if (savedData) {
-      const parsed: unknown = JSON.parse(savedData);
-
-      if (Array.isArray(parsed)) {
-        return parsed as Task[];
-      }
-    }
-  } catch (error) {
-    console.error("Could not read existing tasks:", error);
-  }
-
-  return mockTasks;
-}
-
 export const useTaskStore = create<TaskState>()(
   persist(
     (set) => ({
-      tasks: getInitialTasks(),
+      tasks: [],
 
       setTasks: (tasks) => set({ tasks }),
 

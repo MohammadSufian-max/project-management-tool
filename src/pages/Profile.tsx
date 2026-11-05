@@ -6,12 +6,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { updateEmployee } from "../services/employeeService";
-
+import { getProfile, updateProfile } from "../services/profileService";
 import { useAuthStore } from "../store/authStore";
-import { getEmployees } from "../services/employeeService";
 import Navbar from "../components/Navbar";
-import { useProfileStore } from "../store/profileStore";
 
 const profileSchema = z.object({
   fullName: z
@@ -30,74 +27,63 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function Profile() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
-const [isEditing, setIsEditing] = useState(false);
-const [saveMessage, setSaveMessage] = useState("");
-const adminProfile = useProfileStore((state) => state.adminProfile);
-const setAdminProfile = useProfileStore((state) => state.setAdminProfile);
 
-  const { data: employees = [], isLoading } = useQuery({
-    queryKey: ["employees"],
-    queryFn: getEmployees,
-    enabled: Boolean(user?.employeeId),
+  const [isEditing, setIsEditing] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  const {
+    data: profile,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["profile"],
+    queryFn: getProfile,
+    enabled: Boolean(user),
   });
 
-  const employee = user?.employeeId
-    ? employees.find((item) => item.id === user.employeeId)
-    : undefined;
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    values: {
+      fullName: profile?.fullName ?? "",
+      phone: profile?.phone ?? "",
+    },
+  });
 
-    const form = useForm<ProfileFormValues>({
-  resolver: zodResolver(profileSchema),
-  values: {
-  fullName: employee?.fullName ?? adminProfile.fullName,
-  phone: employee?.phone ?? adminProfile.phone,
-},
-});
-function handleProfileSubmit(values: ProfileFormValues) {
-    if (user?.role === "Super Admin") {
-  const updatedProfile = {
-    fullName: values.fullName.trim(),
-    phone: values.phone.trim(),
-  };
+  const updateMutation = useMutation({
+    mutationFn: updateProfile,
 
-  setAdminProfile(updatedProfile);
-  setIsEditing(false);
-  setSaveMessage("Profile updated successfully.");
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["profile"],
+      });
 
-  return;
-}
+      setIsEditing(false);
+      setSaveMessage("Profile updated successfully.");
+    },
 
-  updateMutation.mutate(values);
-}
+    onError: (error: Error) => {
+      setSaveMessage(error.message || "Unable to update profile.");
+    },
+  });
 
+  function handleProfileSubmit(values: ProfileFormValues) {
+    setSaveMessage("");
 
-const updateMutation = useMutation({
-  mutationFn: async (values: ProfileFormValues) => {
-    if (!employee) {
-      throw new Error("Employee profile not found.");
-    }
-
-    return updateEmployee({
-      ...employee,
+    updateMutation.mutate({
       fullName: values.fullName.trim(),
       phone: values.phone.trim(),
     });
-  },
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({ queryKey: ["employees"] });
-    setIsEditing(false);
-    setSaveMessage("Profile updated successfully.");
-  },
-  onError: (error: Error) => {
-    setSaveMessage(error.message || "Unable to update profile.");
-  },
-});
+  }
 
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Navbar />
         <main className="p-6">
-          <p className="text-slate-600">Please sign in to view your profile.</p>
+          <p className="text-slate-600">
+            Please sign in to view your profile.
+          </p>
         </main>
       </div>
     );
@@ -116,180 +102,193 @@ const updateMutation = useMutation({
         </div>
 
         <section className="rounded-2xl border bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col items-center gap-4 border-b pb-6 sm:flex-row">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-              <UserRound size={38} />
-            </div>
+          {isLoading ? (
+            <p className="text-slate-500">Loading profile...</p>
+          ) : isError ? (
+            <p className="text-red-600">
+              {error instanceof Error
+                ? error.message
+                : "Could not load profile."}
+            </p>
+          ) : profile ? (
+            <>
+              <div className="flex flex-col items-center gap-4 border-b pb-6 sm:flex-row">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                  <UserRound size={38} />
+                </div>
 
-           
-<div className="flex flex-1 flex-col items-center justify-between gap-4 sm:flex-row">
-  <div className="text-center sm:text-left">
-    <h2 className="text-2xl font-bold text-slate-900">
-      {employee?.fullName ??
-  (user.role === "Super Admin" ? adminProfile.fullName : "Employee")}
-    </h2>
+                <div className="flex flex-1 flex-col items-center justify-between gap-4 sm:flex-row">
+                  <div className="text-center sm:text-left">
+                    <h2 className="text-2xl font-bold text-slate-900">
+                      {profile.fullName}
+                    </h2>
 
-    <p className="mt-1 text-slate-500">{user.email}</p>
+                    <p className="mt-1 text-slate-500">
+                      {profile.email}
+                    </p>
 
-    <span className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
-      {user.role}
-    </span>
-  </div>
+                    <span className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+                      {profile.role}
+                    </span>
+                  </div>
 
-  {(employee || user.role === "Super Admin") && !isEditing && (
-    <button
-      type="button"
-      onClick={() => {
-  form.reset({
-    fullName: employee?.fullName ?? adminProfile.fullName,
-    phone: employee?.phone ?? adminProfile.phone,
-  });
-  setSaveMessage("");
-  setIsEditing(true);
-}}
-      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-    >
-      <Pencil size={16} />
-      Edit Profile
-    </button>
-  )}
-</div>
+                  {!isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        form.reset({
+                          fullName: profile.fullName,
+                          phone: profile.phone,
+                        });
+                        setSaveMessage("");
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      <Pencil size={16} />
+                      Edit Profile
+                    </button>
+                  )}
+                </div>
+              </div>
 
-          </div>
+              {isEditing && (
+                <form
+                  onSubmit={form.handleSubmit(handleProfileSubmit)}
+                  className="mt-6 space-y-4 rounded-xl border border-slate-200 p-5"
+                >
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Edit Profile
+                  </h3>
 
-          
-{isEditing && (employee || user.role === "Super Admin") && (
-  <form
-    onSubmit={form.handleSubmit(handleProfileSubmit)}
-    className="mt-6 space-y-4 rounded-xl border border-slate-200 p-5"
-  >
-    <h3 className="text-lg font-semibold text-slate-900">
-      Edit Profile
-    </h3>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Full Name
+                    </label>
 
-    <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">
-        Full Name
-      </label>
-      <input
-        {...form.register("fullName")}
-        className="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      {form.formState.errors.fullName && (
-        <p className="mt-1 text-sm text-red-600">
-          {form.formState.errors.fullName.message}
-        </p>
-      )}
-    </div>
+                    <input
+                      {...form.register("fullName")}
+                      className="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                    />
 
-    <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">
-        Phone Number
-      </label>
-      <input
-        {...form.register("phone")}
-        type="tel"
-        className="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      {form.formState.errors.phone && (
-        <p className="mt-1 text-sm text-red-600">
-          {form.formState.errors.phone.message}
-        </p>
-      )}
-    </div>
+                    {form.formState.errors.fullName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {form.formState.errors.fullName.message}
+                      </p>
+                    )}
+                  </div>
 
-    <p className="text-sm text-slate-500">
-      Email and Role cannot be edited.
-    </p>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-slate-700">
+                      Phone Number
+                    </label>
 
-    <div className="flex flex-wrap gap-3">
-      <button
-        type="submit"
-        disabled={updateMutation.isPending}
-        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-      >
-        {updateMutation.isPending ? "Saving..." : "Save Changes"}
-      </button>
+                    <input
+                      {...form.register("phone")}
+                      type="tel"
+                      className="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                    />
 
-      <button
-        type="button"
-        onClick={() => {
-          form.reset({
-  fullName: employee?.fullName ?? adminProfile.fullName,
-  phone: employee?.phone ?? adminProfile.phone,
-});
-          setIsEditing(false);
-          setSaveMessage("");
-        }}
-        className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      >
-        <X size={16} />
-        Cancel
-      </button>
-    </div>
-  </form>
-)}
+                    {form.formState.errors.phone && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {form.formState.errors.phone.message}
+                      </p>
+                    )}
+                  </div>
 
+                  <p className="text-sm text-slate-500">
+                    Email and Role cannot be edited.
+                  </p>
 
-          <div className="grid gap-5 pt-6 sm:grid-cols-2">
-            <ProfileItem
-  icon={<Mail size={20} />}
-  label="Phone Number"
-  value={employee?.phone ?? (adminProfile.phone || "Not provided")}
-/>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="submit"
+                      disabled={updateMutation.isPending}
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {updateMutation.isPending
+                        ? "Saving..."
+                        : "Save Changes"}
+                    </button>
 
-            <ProfileItem
-              icon={<ShieldCheck size={20} />}
-              label="Account Role"
-              value={user.role}
-            />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        form.reset({
+                          fullName: profile.fullName,
+                          phone: profile.phone,
+                        });
+                        setIsEditing(false);
+                        setSaveMessage("");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <X size={16} />
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
 
-            <ProfileItem
-              icon={<UserRound size={20} />}
-              label="Employee ID"
-              value={user.employeeId ?? "Not linked"}
-            />
-
-            <ProfileItem
-              icon={<CalendarDays size={20} />}
-              label="Account Status"
-              value={employee?.status ?? "Demo Admin Account"}
-            />
-
-            {employee && (
-              <>
+              <div className="grid gap-5 pt-6 sm:grid-cols-2">
                 <ProfileItem
-                  icon={<UserRound size={20} />}
-                  label="Designation"
-                  value={employee.designation}
+                  icon={<Mail size={20} />}
+                  label="Phone Number"
+                  value={profile.phone || "Not provided"}
+                />
+
+                <ProfileItem
+                  icon={<ShieldCheck size={20} />}
+                  label="Account Role"
+                  value={profile.role}
                 />
 
                 <ProfileItem
                   icon={<UserRound size={20} />}
-                  label="Department"
-                  value={employee.department}
+                  label="Employee ID"
+                  value={profile.id}
                 />
 
                 <ProfileItem
                   icon={<CalendarDays size={20} />}
-                  label="Joining Date"
-                  value={employee.joiningDate}
+                  label="Account Status"
+                  value={
+                    profile.role === "Super Admin"
+                      ? "Demo Admin Account"
+                      : "Not available"
+                  }
                 />
-              </>
-            )}
-          </div>
 
-          {isLoading && (
-            <p className="mt-5 text-sm text-slate-500">
-              Loading employee information...
-            </p>
-          )}
+                {profile.role !== "Super Admin" && (
+                  <>
+                    <ProfileItem
+                      icon={<UserRound size={20} />}
+                      label="Designation"
+                      value={profile.designation || "Not provided"}
+                    />
 
-          {saveMessage && (
-  <p className="mt-4 text-sm text-blue-700" role="status">
-    {saveMessage}
-  </p>
-)}
+                    <ProfileItem
+                      icon={<UserRound size={20} />}
+                      label="Department"
+                      value={profile.department || "Not provided"}
+                    />
+
+                    <ProfileItem
+                      icon={<CalendarDays size={20} />}
+                      label="Joining Date"
+                      value={profile.joiningDate || "Not provided"}
+                    />
+                  </>
+                )}
+              </div>
+
+              {saveMessage && (
+                <p className="mt-4 text-sm text-blue-700" role="status">
+                  {saveMessage}
+                </p>
+              )}
+            </>
+          ) : null}
         </section>
 
         <p className="text-sm text-slate-500">

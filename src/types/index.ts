@@ -56,8 +56,9 @@ export interface Task {
 
 export interface DemoUser {
   id: string;
+  name: string;
   email: string;
-  password: string;
-  role: AppRole;
+  role: "Super Admin" | "Employee" | "Project Manager";
   employeeId?: string;
+  password?: string;
 }

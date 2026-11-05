@@ -77,7 +77,7 @@ const pageSize = 10;
   });
 
   const isAdmin = user?.role === "Super Admin";
-  const currentEmployeeId = user?.employeeId;
+const currentEmployeeId = user?.employeeId ?? user?.id;
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),

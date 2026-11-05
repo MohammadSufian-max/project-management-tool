@@ -1,8 +1,6 @@
-
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Project } from "../types";
-import { mockProjects } from "../data/mockProjects";
 
 interface ProjectState {
   projects: Project[];
@@ -11,28 +9,10 @@ interface ProjectState {
   updateProject: (project: Project) => void;
 }
 
-function getInitialProjects(): Project[] {
-  try {
-    const savedData = localStorage.getItem("pmt_projects");
-
-    if (savedData) {
-      const parsed: unknown = JSON.parse(savedData);
-
-      if (Array.isArray(parsed)) {
-        return parsed as Project[];
-      }
-    }
-  } catch (error) {
-    console.error("Could not read existing projects:", error);
-  }
-
-  return mockProjects;
-}
-
 export const useProjectStore = create<ProjectState>()(
   persist(
     (set) => ({
-      projects: getInitialProjects(),
+      projects: [],
 
       setProjects: (projects) => set({ projects }),
 
@@ -44,7 +24,7 @@ export const useProjectStore = create<ProjectState>()(
       updateProject: (updatedProject) =>
         set((state) => ({
           projects: state.projects.map((project) =>
-            project.id === updatedProject.id ? updatedProject : project,
+            project.id === updatedProject.id ? updatedProject : project
           ),
         })),
     }),
@@ -52,6 +32,6 @@ export const useProjectStore = create<ProjectState>()(
       name: "pmt-projects",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ projects: state.projects }),
-    },
-  ),
+    }
+  )
 );

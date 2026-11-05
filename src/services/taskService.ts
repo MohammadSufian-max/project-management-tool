@@ -1,148 +1,127 @@
-
+import axios from "axios";
 import type { Task } from "../types";
+import api from "./api";
 import { useTaskStore } from "../store/taskStore";
-import { useProjectStore } from "../store/projectStore";
-import { useEmployeeStore } from "../store/employeeStore";
+import { useAuthStore } from "../store/authStore";
 
-
-function delay(ms = 300): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface BackendTask {
+  id: string;
+  title: string;
+  description: string;
+  projectId: string;
+  assigneeId: string;
+  priority: Task["priority"];
+  status: Task["status"];
+  startDate: string;
+  dueDate: string;
+  createdAt: string;
 }
 
-function getStoredProjects() {
-  return useProjectStore.getState().projects;
+function mapTask(task: BackendTask): Task {
+  return {
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    projectId: task.projectId,
+    assigneeId: task.assigneeId,
+    priority: task.priority,
+    status: task.status,
+    startDate: task.startDate,
+    dueDate: task.dueDate,
+    createdAt: task.createdAt,
+  };
 }
 
-function getStoredEmployees() {
-  return useEmployeeStore.getState().employees;
-}
-
-function validateTaskAssignment(task: Task): void {
-  const projects = getStoredProjects();
-  const employees = getStoredEmployees();
-
-  const project = projects.find((item) => item.id === task.projectId);
-
-  if (!project) {
-    throw new Error("Select a valid project.");
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.message || "Something went wrong.";
   }
 
-  if (project.isArchived) {
-    throw new Error("Cannot assign tasks to an archived project.");
+  if (error instanceof Error) {
+    return error.message;
   }
 
-  const assignee = employees.find(
-    (employee) => employee.id === task.assigneeId,
-  );
-
-  if (!assignee || assignee.status !== "Active") {
-    throw new Error("Assignee must be an active employee.");
-  }
-
-  if (!project.teamMemberIds.includes(assignee.id)) {
-    throw new Error(
-      "Assignee must belong to the selected project's team.",
-    );
-  }
-
-  function isValidDate(value: string): boolean {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return false;
-    }
-
-    const date = new Date(`${value}T00:00:00.000Z`);
-
-    return (
-      !Number.isNaN(date.getTime()) &&
-      date.toISOString().slice(0, 10) === value
-    );
-  }
-
-  if (
-    !isValidDate(project.startDate) ||
-    !isValidDate(project.endDate) ||
-    project.startDate > project.endDate
-  ) {
-    throw new Error("The project has an invalid date range.");
-  }
-
-  if (!isValidDate(task.startDate) || !isValidDate(task.dueDate)) {
-    throw new Error("Enter valid task start and due dates.");
-  }
-
-  if (
-    task.startDate < project.startDate ||
-    task.startDate > project.endDate
-  ) {
-    throw new Error("Task start date must be within the project dates.");
-  }
-
-  if (
-    task.dueDate < task.startDate ||
-    task.dueDate > project.endDate
-  ) {
-    throw new Error(
-      "Task due date must be on or after its start date and within the project dates.",
-    );
-  }
+  return "Something went wrong.";
 }
 
 export async function getTasks(): Promise<Task[]> {
-  await delay();
-  return useTaskStore.getState().tasks;
+  try {
+    const response = await api.get("/tasks");
+
+    const tasks: Task[] = response.data.data.map(mapTask);
+
+    useTaskStore.getState().setTasks(tasks);
+
+    return tasks;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
 }
 
 export async function createTask(task: Task): Promise<Task> {
-  await delay();
+  try {
+    const response = await api.post("/tasks", {
+      title: task.title,
+      description: task.description,
+      projectId: task.projectId,
+      assigneeId: task.assigneeId,
+      priority: task.priority,
+      status: task.status,
+      startDate: task.startDate,
+      dueDate: task.dueDate,
+    });
 
-  validateTaskAssignment(task);
+    const newTask = mapTask(response.data.data);
 
-  const store = useTaskStore.getState();
+    useTaskStore.getState().addTask(newTask);
 
-  if (store.tasks.some((item) => item.id === task.id)) {
-    throw new Error("Task already exists.");
+    return newTask;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-
-  store.addTask(task);
-
-  return task;
 }
 
-export async function updateTask(
-  updatedTask: Task
-): Promise<Task> {
-  await delay();
+export async function updateTask(updatedTask: Task): Promise<Task> {
+  try {
+    const user = useAuthStore.getState().user;
 
-  const store = useTaskStore.getState();
+    const payload =
+      user?.role === "Super Admin"
+        ? {
+            title: updatedTask.title,
+            description: updatedTask.description,
+            projectId: updatedTask.projectId,
+            assigneeId: updatedTask.assigneeId,
+            priority: updatedTask.priority,
+            status: updatedTask.status,
+            startDate: updatedTask.startDate,
+            dueDate: updatedTask.dueDate,
+          }
+        : {
+            status: updatedTask.status,
+          };
 
-  const existingTask = store.tasks.find(
-    (task) => task.id === updatedTask.id
-  );
+    const response = await api.put(
+      `/tasks/${updatedTask.id}`,
+      payload
+    );
 
-  if (!existingTask) {
-    throw new Error("Task not found.");
+    const task = mapTask(response.data.data);
+
+    useTaskStore.getState().updateTask(task);
+
+    return task;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-
-  validateTaskAssignment(updatedTask);
-
-  store.updateTask(updatedTask);
-
-  return updatedTask;
 }
-
 
 export async function deleteTask(taskId: string): Promise<void> {
-  await delay();
+  try {
+    await api.delete(`/tasks/${taskId}`);
 
-  const store = useTaskStore.getState();
-
-  const taskExists = store.tasks.some(
-    (task) => task.id === taskId
-  );
-
-  if (!taskExists) {
-    throw new Error("Task not found.");
+    useTaskStore.getState().deleteTask(taskId);
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
   }
-
-  store.deleteTask(taskId);
 }

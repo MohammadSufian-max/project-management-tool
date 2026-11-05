@@ -9,7 +9,7 @@ import { useAuthStore } from "../store/authStore";
 
 export default function Login() {
   const navigate = useNavigate();
-  const setUser = useAuthStore((state) => state.setUser);
+  const setSession = useAuthStore((state) => state.setSession);
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -32,9 +32,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const user = await login(values.email, values.password);
-      setUser(user);
-      navigate("/dashboard");
+      const { user, token } = await login(
+  values.email,
+  values.password
+);
+
+setSession(user, token);
+navigate("/dashboard");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Login failed. Please try again.",
