@@ -1,7 +1,7 @@
 
 export type EmployeeRole = "Employee" | "Project Manager";
 
-export type AppRole = "Super Admin" | "Employee";
+export type AppRole = "Super Admin" | "Employee" | "Project Manager";
 
 export type EmployeeStatus = "Active" | "Inactive";
 
