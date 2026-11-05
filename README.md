@@ -1,68 +1,188 @@
-# ProjectFlow - Project Management Tool
+# 🚀 ProjectFlow – Project Management Tool
 
-A responsive frontend project management application built with React, TypeScript, and Vite. ProjectFlow helps manage employees, projects, teams, tasks, and project progress through a role-based interface.
+A full-stack **Project Management Tool** designed to help organizations manage employees, projects, teams, and tasks efficiently through a centralized platform.
 
-## Features
+ProjectFlow provides role-based access, employee onboarding, project management, task assignment, progress tracking, and a real-time dashboard.
 
-### Authentication
-- Demo login with predefined credentials.
-- Form validation using React Hook Form and Zod.
-- Persistent client-side session using Zustand.
-- Protected routes and role-based navigation.
-- Logout functionality.
+🔗 **Live Demo:** [ProjectFlow](https://project-management-tool-flax-six.vercel.app/)
 
-### Employee Management
-- Create, view, edit, and deactivate employee records.
-- Search employees.
-- Validate required fields, email format, unique email addresses, and phone numbers.
-- Assign employee roles, departments, and joining dates.
+💻 **GitHub Repository:** [Project Management Tool](https://github.com/MohammadSufian-max/project-management-tool)
 
-### Project Management
-- Create and edit projects.
-- Assign a Project Manager and active team members.
-- Validate project details and date ranges.
-- View project details, team members, tasks, and calculated progress.
+---
+
+## ✨ Features
+
+### 🔐 Authentication & Authorization
+- Secure login using JWT authentication.
+- Role-based access control.
+- Separate access for Super Admin and Employees.
+- Protected routes and authenticated API requests.
+
+### 👥 Employee Management
+- Add and onboard new employees.
+- View employee details.
+- Edit employee information.
+- Activate and deactivate employee accounts.
+- Manage employee roles and departments.
+
+### 📁 Project Management
+- Create and manage projects.
+- Assign Project Managers.
+- Add team members to projects.
+- Update project details and status.
 - Archive projects.
+- Track project progress.
 
-### Task Management
-- Create, edit, and delete tasks according to application permissions.
-- Assign tasks to eligible team members of the selected project.
-- Manage task priority, status, start date, and due date.
-- Validate task assignments and project date constraints.
-- Display task information and deadlines.
+### ✅ Task Management
+- Create, update, and delete tasks.
+- Assign tasks to eligible project team members.
+- Set task priority: Low, Medium, High.
+- Manage task status: To Do, In Progress, Done.
+- Validate task dates against project timelines.
+- Employees can update the status of their assigned tasks.
 
-### Dashboard and Profile
-- Dashboard statistics and project progress calculated from mock data.
-- Task status, overdue tasks, and project summaries.
-- Profile editing for permitted personal details.
-- Responsive layouts for mobile, tablet, and desktop.
-- Loading, empty, error, and success feedback where implemented.
+### 📊 Dashboard
+- View project and task statistics.
+- Track completed and pending tasks.
+- Monitor overdue tasks.
+- Calculate project progress automatically.
+- Role-based dashboard information.
 
-## Technology Stack
+### 👤 Profile Management
+- View personal profile information.
+- Update name and phone number.
+- Securely retrieve profile details from the backend.
 
-- React
-- Vite
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React.js
 - TypeScript
+- Vite
 - Tailwind CSS
-- shadcn/ui
 - React Router
 - Zustand
-- Lucide React
+- TanStack Query
 - React Hook Form
 - Zod
-- TanStack Query
-- Browser localStorage for demo persistence
+- Lucide React
+- Axios
 
-## Getting Started
-
-### Prerequisites
-
+### Backend
 - Node.js
-- npm
+- Express.js
+- TypeScript
+- TypeORM
+- JWT Authentication
+- Bcrypt
 
-### Installation
+### Database
+- MySQL
+- Aiven Cloud MySQL
 
-Clone the repository or download the project source, then open a terminal in the project directory.
+### Deployment & Tools
+- Vercel – Frontend Hosting
+- Render – Backend Hosting
+- Git & GitHub
+- Postman
+- MySQL Workbench
+
+---
+
+## 🏗️ Application Architecture
+
+```text
+                 PROJECTFLOW
+                      |
+          +-----------+-----------+
+          |                       |
+      Frontend                 Backend
+          |                       |
+    React + Vite             Node.js
+    TypeScript               Express.js
+    Tailwind CSS             TypeScript
+          |                       |
+          |                  REST APIs
+          |                       |
+          +----------+------------+
+                     |
+                  MySQL
+                     |
+                Aiven Cloud
+```
+
+---
+
+## 👤 User Roles
+
+| Role | Permissions |
+|---|---|
+| Super Admin | Manage employees, projects, teams, and tasks |
+| Employee | View assigned tasks and update their task status |
+
+---
+
+## 🔑 Demo Credentials
+
+### Super Admin
+```text
+Email: admin@demo.com
+Password: Admin@123
+```
+
+### Employee
+```text
+Email: employee@demo.com
+Password: Employee@123
+```
+
+---
+
+## ⚙️ Installation & Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/MohammadSufian-max/project-management-tool.git
+```
+
+```bash
+cd project-management-tool
+```
+
+### 2. Frontend Setup
+
+```bash
+npm install
+```
+
+Create a `.env` file in the project root:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+Start the frontend:
+
+```bash
+npm run dev
+```
+
+Frontend will run at:
+
+```text
+http://localhost:5173
+```
+
+### 3. Backend Setup
+
+Open another terminal:
+
+```bash
+cd backend
+```
 
 Install dependencies:
 
@@ -70,86 +190,83 @@ Install dependencies:
 npm install
 ```
 
-Start the development server:
+Create a `.env` file inside the `backend` directory:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=your_mysql_username
+DB_PASSWORD=your_mysql_password
+DB_DATABASE=project_management
+
+JWT_SECRET=your_strong_secret_key
+```
+
+Configure your MySQL database and update the environment variables accordingly.
+
+Start the backend:
 
 ```bash
 npm run dev
 ```
 
-Open the local URL displayed by Vite in your browser.
-
-### Production Build
-
-Run the TypeScript checks and generate the production build:
-
-```bash
-npm run build
-```
-
-To preview the production build locally:
-
-```bash
-npm run preview
-```
-
-## Demo Credentials
-
-### Super Admin
-
-- Email: `admin@demo.com`
-- Password: `Admin@123`
-
-### Employee
-
-- Email: `employee@demo.com`
-- Password: `Employee@123`
-
-Use these predefined credentials to explore the application's demo authentication and role-based interface.
-
-## Project Structure
+Backend will run at:
 
 ```text
-src/
-├── assets/          # Static assets
-├── components/      # Shared components and navigation
-│   ├── common/      # Protected route components
-│   └── ui/          # UI components
-├── data/            # Mock employees, projects, tasks, and users
-├── lib/             # Shared utilities
-├── pages/           # Login, Dashboard, Employees, Projects,
-│                    # Project Details, Tasks, and Profile
-├── schemas/         # Form validation schemas
-├── services/        # Mock authentication, data, and storage services
-├── store/           # Zustand session state
-├── types/           # TypeScript interfaces and types
-├── App.tsx          # Application routes
-├── index.css        # Global styles
-└── main.tsx         # Application entry point
+http://localhost:5000
 ```
 
-## Architecture Notes
+---
 
-- **Pages and components:** React components provide the application interface and reusable UI elements.
-- **Routing:** React Router manages navigation, protected pages, and project detail routes.
-- **Forms and validation:** React Hook Form manages form state, while Zod validates user input.
-- **Server-state patterns:** TanStack Query manages asynchronous mock data operations, loading and error states, mutations, and cache invalidation.
-- **Session state:** Zustand manages the demo authentication session.
-- **Data persistence:** Mock services use browser localStorage to retain supported changes across refreshes.
+## 🌐 Deployment
 
-## Important Notes
+ProjectFlow is deployed using the following cloud services:
 
-- This is a frontend demonstration project. It does not include a production backend, database, or server-side authentication.
-- Demo credentials are predefined for demonstration purposes and must not be used as real account credentials.
-- Application data is stored locally in the browser where persistence is implemented.
-- Clearing browser storage may reset the locally persisted demo data.
+| Component | Platform |
+|---|---|
+| Frontend | Vercel |
+| Backend | Render |
+| Database | Aiven MySQL |
 
-## Future Improvements
+---
 
-- Integrate a backend API and database.
-- Implement secure server-side authentication and authorization.
-- Add automated tests.
-- Add production deployment and continuous integration.
+## 🔒 Security
 
-## License
+- JWT-based authentication.
+- Password hashing using Bcrypt.
+- Protected API endpoints.
+- Role-based authorization.
+- Environment variables for sensitive configuration.
+- Server-side input validation.
 
-Add an appropriate license before distributing this project publicly.
+---
+
+## 📌 Key Highlights
+
+- Full-stack application with React and Node.js.
+- RESTful API integration.
+- Relational database design using MySQL.
+- Role-based authentication and authorization.
+- Persistent cloud database integration.
+- Responsive user interface.
+- Automated project progress calculation.
+- Cloud deployment using Vercel, Render, and Aiven.
+
+---
+
+## 👨‍💻 Author
+
+**Mohammad Sufiyan**
+
+B.Tech – Computer Science (AI & Data Science)
+
+📍 Kanpur, Uttar Pradesh, India
+
+- GitHub: [MohammadSufian-max](https://github.com/MohammadSufian-max)
+- LinkedIn: [Connect with me](https://www.linkedin.com/)
+
+---
+
+⭐ If you find this project interesting, consider giving it a star!
+
+**Built with ❤️ using React, Node.js, TypeScript, and MySQL.**
