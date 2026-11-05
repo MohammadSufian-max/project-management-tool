@@ -24,6 +24,9 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error("Your account is inactive");
   }
 
+  if (!employee.password) {
+  throw new Error("Invalid email or password");
+}
   // Compare password with bcrypt hash
   const isPasswordValid = await bcrypt.compare(
     password,
