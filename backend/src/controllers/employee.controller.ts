@@ -54,13 +54,13 @@ export const getEmployee = async (req: Request, res: Response) => {
   }
 };
 
-
 // POST create employee
 export const addEmployee = async (req: Request, res: Response) => {
   try {
     const {
       name,
       email,
+      password,
       role,
       phone,
       designation,
@@ -72,6 +72,7 @@ export const addEmployee = async (req: Request, res: Response) => {
     if (
       !name ||
       !email ||
+      !password ||
       !role ||
       !phone ||
       !designation ||
@@ -94,6 +95,7 @@ export const addEmployee = async (req: Request, res: Response) => {
     const employee = await createEmployee({
       name,
       email,
+      password,
       role,
       phone,
       designation,
@@ -102,44 +104,46 @@ export const addEmployee = async (req: Request, res: Response) => {
       status: status ?? "Active",
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Employee created successfully",
       data: employee,
     });
   } catch (error) {
-  const message =
-    error instanceof Error ? error.message : "Failed to create employee";
+    const message =
+      error instanceof Error ? error.message : "Failed to create employee";
 
-  if (message === "Email already exists") {
-    return res.status(409).json({
+    if (message === "Email already exists") {
+      return res.status(409).json({
+        success: false,
+        message,
+      });
+    }
+
+    const validationErrors = [
+      "Invalid employee role",
+      "All required employee fields must be provided",
+      "Invalid phone number",
+      "Invalid joining date",
+      "Name must be between 3 and 100 characters",
+      "Invalid email address",
+      "Invalid department",
+      "Password must be at least 8 characters long",
+      "Super Admin cannot be created through employee onboarding",
+    ];
+
+    if (validationErrors.includes(message)) {
+      return res.status(400).json({
+        success: false,
+        message,
+      });
+    }
+
+    return res.status(500).json({
       success: false,
-      message,
+      message: "Failed to create employee",
     });
   }
-
-  if (
-    message === "Invalid employee role" ||
-    message === "All required employee fields must be provided" ||
-    message === "Invalid phone number" ||
-    message === "Invalid joining date" ||
-    message === "Name must be between 3 and 100 characters" ||
-    message === "Invalid email address" ||
-    message === "Invalid department" ||
-    message === "Super Admin cannot be created through employee onboarding"
-    
-  ) {
-    return res.status(400).json({
-      success: false,
-      message,
-    });
-  }
-
-  return res.status(500).json({
-    success: false,
-    message: "Failed to create employee",
-  });
-}
 };
 
 // PUT update employee
@@ -238,9 +242,7 @@ export const removeEmployee = async (req: Request, res: Response) => {
   }
 };
 
-
-
- // GET all tasks assigned to a specific employee
+// GET all tasks assigned to a specific employee
 export const getTasksByEmployee = async (
   req: Request,
   res: Response

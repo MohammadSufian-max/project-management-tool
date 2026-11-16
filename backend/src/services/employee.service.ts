@@ -1,5 +1,7 @@
+
 import { AppDataSource } from "../config/database";
 import { Employee } from "../entities/Employee";
+import bcrypt from "bcrypt";
 
 // Employee repository
 const employeeRepository = AppDataSource.getRepository(Employee);
@@ -8,6 +10,7 @@ const employeeRepository = AppDataSource.getRepository(Employee);
 interface EmployeeInput {
   name: string;
   email: string;
+  password: string;
   role: "Super Admin" | "Employee" | "Project Manager";
   phone?: string;
   designation?: string;
@@ -15,6 +18,9 @@ interface EmployeeInput {
   joiningDate?: string;
   status?: "Active" | "Inactive";
 }
+
+// Employee update input (password cannot be changed here)
+type EmployeeUpdateInput = Partial<Omit<EmployeeInput, "password">>;
 
 // GET: All employees
 export const getAllEmployees = async () => {
@@ -40,9 +46,16 @@ export const createEmployee = async (data: EmployeeInput) => {
     throw new Error("Invalid employee role");
   }
 
+  // Validate password
+  if (!data.password?.trim() || data.password.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+
   // Check duplicate email
+  const normalizedEmail = data.email.trim().toLowerCase();
+
   const existingEmployee = await employeeRepository.findOne({
-    where: { email: data.email },
+    where: { email: normalizedEmail },
   });
 
   if (existingEmployee) {
@@ -60,62 +73,76 @@ export const createEmployee = async (data: EmployeeInput) => {
   ) {
     throw new Error("All required employee fields must be provided");
   }
+
   // Validate phone number (10 digits)
-if (!/^[0-9]{10}$/.test(data.phone || "")) {
-  throw new Error("Invalid phone number");
-}
-// Validate joining date
-if (
-  !data.joiningDate ||
-  Number.isNaN(Date.parse(data.joiningDate)) ||
-  !/^\d{4}-\d{2}-\d{2}$/.test(data.joiningDate)
-) {
-  throw new Error("Invalid joining date");
-}
+  if (!/^[0-9]{10}$/.test(data.phone || "")) {
+    throw new Error("Invalid phone number");
+  }
 
-// Validate employee name
-const trimmedName = data.name.trim();
+  // Validate joining date
+  if (
+    !data.joiningDate ||
+    Number.isNaN(Date.parse(data.joiningDate)) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(data.joiningDate)
+  ) {
+    throw new Error("Invalid joining date");
+  }
 
-if (trimmedName.length < 3 || trimmedName.length > 100) {
-  throw new Error("Name must be between 3 and 100 characters");
-}
+  // Validate employee name
+  const trimmedName = data.name.trim();
 
-data.name = trimmedName;
+  if (trimmedName.length < 3 || trimmedName.length > 100) {
+    throw new Error("Name must be between 3 and 100 characters");
+  }
 
-// Validate employee email
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  data.name = trimmedName;
 
-if (!emailRegex.test(data.email)) {
-  throw new Error("Invalid email address");
-}
+  // Validate employee email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-data.email = data.email.trim().toLowerCase();
+  if (!emailRegex.test(normalizedEmail)) {
+    throw new Error("Invalid email address");
+  }
 
-// Validate department
-const allowedDepartments = [
-  "Engineering",
-  "Design",
-  "QA",
-  "Business",
-  "Other",
-];
+  data.email = normalizedEmail;
 
-if (!allowedDepartments.includes(data.department)) {
-  throw new Error("Invalid department");
-}
+  // Validate department
+  const allowedDepartments = [
+    "Engineering",
+    "Design",
+    "QA",
+    "Business",
+    "Other",
+  ];
+
+  if (!allowedDepartments.includes(data.department)) {
+    throw new Error("Invalid department");
+  }
+
+  // Hash password before saving
+  const hashedPassword = await bcrypt.hash(data.password, 12);
+
+  // Remove plain-text password from input data
+  const { password, ...employeeData } = data;
 
   const newEmployee = employeeRepository.create({
     id: `emp-${Date.now()}`,
-    ...data,
+    ...employeeData,
+    password: hashedPassword,
   });
 
-  return await employeeRepository.save(newEmployee);
+  const savedEmployee = await employeeRepository.save(newEmployee);
+
+  // Never return password or password hash
+  const { password: savedPassword, ...safeEmployee } = savedEmployee;
+
+  return safeEmployee;
 };
 
 // PUT: Update employee
 export const updateEmployee = async (
   id: string,
-  data: Partial<EmployeeInput>
+  data: EmployeeUpdateInput
 ) => {
   const employee = await employeeRepository.findOneBy({ id });
 
@@ -174,16 +201,16 @@ export const updateEmployee = async (
   }
 
   // Validate designation
-if (
-  data.designation !== undefined &&
-  !data.designation.trim()
-) {
-  throw new Error("Designation is required");
-}
+  if (
+    data.designation !== undefined &&
+    !data.designation.trim()
+  ) {
+    throw new Error("Designation is required");
+  }
 
-if (data.designation !== undefined) {
-  data.designation = data.designation.trim();
-}
+  if (data.designation !== undefined) {
+    data.designation = data.designation.trim();
+  }
 
   // Validate joining date
   if (data.joiningDate !== undefined) {
@@ -204,21 +231,17 @@ if (data.designation !== undefined) {
   }
 
   // Validate status
-if (
-  data.status !== undefined &&
-  !["Active", "Inactive"].includes(data.status)
-) {
-  throw new Error("Invalid status");
-}
+  if (
+    data.status !== undefined &&
+    !["Active", "Inactive"].includes(data.status)
+  ) {
+    throw new Error("Invalid status");
+  }
 
   Object.assign(employee, data);
 
-
-
   return await employeeRepository.save(employee);
 };
-
-
 
 // DEACTIVATE employee
 export const deleteEmployee = async (id: string) => {

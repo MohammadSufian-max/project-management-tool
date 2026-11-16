@@ -16,6 +16,12 @@ interface BackendEmployee {
   createdAt: string;
 }
 
+
+type CreateEmployeeInput = Omit<Employee, "id" | "createdAt"> & {
+  password: string;
+};
+
+
 function mapEmployee(employee: BackendEmployee): Employee {
   return {
     id: employee.id,
@@ -59,13 +65,15 @@ export async function getEmployees(): Promise<Employee[]> {
 }
 
 // CREATE employee
+
 export async function createEmployee(
-  employee: Employee,
+  employee: CreateEmployeeInput,
 ): Promise<Employee> {
   try {
     const response = await api.post("/employees", {
       name: employee.fullName,
       email: employee.email,
+      password: employee.password,
       phone: employee.phone,
       designation: employee.designation,
       department: employee.department,
@@ -83,6 +91,7 @@ export async function createEmployee(
     throw new Error(getErrorMessage(error));
   }
 }
+
 
 // UPDATE employee
 export async function updateEmployee(

@@ -71,3 +71,16 @@ export async function updateProfile(
     throw new Error(getErrorMessage(error));
   }
 }
+
+
+export async function changePassword(values: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<void> {
+  try {
+    await api.put("/auth/change-password", values);
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+}

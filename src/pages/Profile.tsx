@@ -1,12 +1,25 @@
-
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Mail, ShieldCheck, UserRound, CalendarDays, Pencil, X } from "lucide-react";
+import {
+  Mail,
+  ShieldCheck,
+  UserRound,
+  CalendarDays,
+  Pencil,
+  X,
+  LockKeyhole,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { getProfile, updateProfile } from "../services/profileService";
+import {
+  getProfile,
+  updateProfile,
+  changePassword,
+} from "../services/profileService";
 import { useAuthStore } from "../store/authStore";
 import Navbar from "../components/Navbar";
 
@@ -30,6 +43,13 @@ export default function Profile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+const [showNewPassword, setShowNewPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     data: profile,
@@ -67,6 +87,54 @@ export default function Profile() {
     },
   });
 
+  const passwordMutation = useMutation({
+    mutationFn: changePassword,
+
+    onSuccess: () => {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordMessage("Password changed successfully.");
+    },
+
+    onError: (error: Error) => {
+      setPasswordMessage(error.message || "Unable to change password.");
+    },
+  });
+
+  function handlePasswordSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPasswordMessage("");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage("Please fill in all password fields.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordMessage("New password must be at least 8 characters.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage("New password and confirmation do not match.");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordMessage(
+        "New password must be different from the current password.",
+      );
+      return;
+    }
+
+    passwordMutation.mutate({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+  }
+
   function handleProfileSubmit(values: ProfileFormValues) {
     setSaveMessage("");
 
@@ -81,9 +149,7 @@ export default function Profile() {
       <div className="min-h-screen bg-slate-50">
         <Navbar />
         <main className="p-6">
-          <p className="text-slate-600">
-            Please sign in to view your profile.
-          </p>
+          <p className="text-slate-600">Please sign in to view your profile.</p>
         </main>
       </div>
     );
@@ -123,9 +189,7 @@ export default function Profile() {
                       {profile.fullName}
                     </h2>
 
-                    <p className="mt-1 text-slate-500">
-                      {profile.email}
-                    </p>
+                    <p className="mt-1 text-slate-500">{profile.email}</p>
 
                     <span className="mt-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
                       {profile.role}
@@ -206,9 +270,7 @@ export default function Profile() {
                       disabled={updateMutation.isPending}
                       className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {updateMutation.isPending
-                        ? "Saving..."
-                        : "Save Changes"}
+                      {updateMutation.isPending ? "Saving..." : "Save Changes"}
                     </button>
 
                     <button
@@ -282,6 +344,121 @@ export default function Profile() {
                 )}
               </div>
 
+              <div className="mt-8 border-t pt-6">
+                <div className="mb-5">
+                  <h3 className="text-xl font-semibold text-slate-900">
+                    Change Password
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Update your account password securely.
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={handlePasswordSubmit}
+                  className="max-w-xl space-y-4"
+                >
+                  
+<div className="relative">
+  <label className="mb-1 block text-sm font-medium text-slate-700">
+    Current Password
+  </label>
+
+  <input
+    type={showCurrentPassword ? "text" : "password"}
+    value={currentPassword}
+    onChange={(e) => setCurrentPassword(e.target.value)}
+    autoComplete="current-password"
+    className="w-full rounded-lg border px-3 py-2 pr-10 outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter current password"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowCurrentPassword((prev) => !prev)}
+    className="absolute right-3 top-9 text-slate-500"
+  >
+    {showCurrentPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+  </button>
+</div>
+
+
+                  
+<div className="relative">
+  <label className="mb-1 block text-sm font-medium text-slate-700">
+    New Password
+  </label>
+
+  <input
+    type={showNewPassword ? "text" : "password"}
+    value={newPassword}
+    onChange={(e) => setNewPassword(e.target.value)}
+    autoComplete="new-password"
+    className="w-full rounded-lg border px-3 py-2 pr-10 outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Enter new password"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowNewPassword((prev) => !prev)}
+    className="absolute right-3 top-9 text-slate-500"
+  >
+    {showNewPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+  </button>
+</div>
+
+
+                  
+<div className="relative">
+  <label className="mb-1 block text-sm font-medium text-slate-700">
+    Confirm New Password
+  </label>
+
+  <input
+    type={showConfirmPassword ? "text" : "password"}
+    value={confirmPassword}
+    onChange={(e) => setConfirmPassword(e.target.value)}
+    autoComplete="new-password"
+    className="w-full rounded-lg border px-3 py-2 pr-10 outline-none focus:ring-2 focus:ring-blue-500"
+    placeholder="Confirm new password"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowConfirmPassword((prev) => !prev)}
+    className="absolute right-3 top-9 text-slate-500"
+  >
+    {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+  </button>
+</div>
+
+
+                  <button
+                    type="submit"
+                    disabled={passwordMutation.isPending}
+                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    <LockKeyhole size={16} />
+                    {passwordMutation.isPending
+                      ? "Updating..."
+                      : "Change Password"}
+                  </button>
+
+                  {passwordMessage && (
+                    <p
+                      className={`text-sm ${
+                        passwordMutation.isError
+                          ? "text-red-600"
+                          : "text-green-600"
+                      }`}
+                      role="status"
+                    >
+                      {passwordMessage}
+                    </p>
+                  )}
+                </form>
+              </div>
+
               {saveMessage && (
                 <p className="mt-4 text-sm text-blue-700" role="status">
                   {saveMessage}
@@ -292,7 +469,8 @@ export default function Profile() {
         </section>
 
         <p className="text-sm text-slate-500">
-          Update your personal information while keeping your email and role read-only.
+          Update your personal information while keeping your email and role
+          read-only.
         </p>
       </main>
     </div>
@@ -308,15 +486,11 @@ interface ProfileItemProps {
 function ProfileItem({ icon, label, value }: ProfileItemProps) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-4">
-      <div className="rounded-lg bg-slate-100 p-2 text-slate-600">
-        {icon}
-      </div>
+      <div className="rounded-lg bg-slate-100 p-2 text-slate-600">{icon}</div>
 
       <div className="min-w-0">
         <p className="text-sm text-slate-500">{label}</p>
-        <p className="mt-1 break-words font-medium text-slate-900">
-          {value}
-        </p>
+        <p className="mt-1 break-words font-medium text-slate-900">{value}</p>
       </div>
     </div>
   );

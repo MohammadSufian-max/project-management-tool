@@ -27,43 +27,65 @@ import {
   PaginationNext,
 } from "../components/ui/pagination";
 
-const employeeSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(3, "Name must have at least 3 characters.")
-    .max(100, "Name cannot exceed 100 characters."),
+const employeeSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(3, "Name must have at least 3 characters.")
+      .max(100, "Name cannot exceed 100 characters."),
 
-  email: z.string().trim().email("Enter a valid email address."),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^[0-9]{10}$/, "Enter a 10-digit phone number."),
-  designation: z.string().trim().min(2, "Designation is required."),
-  department: z.enum(["Engineering", "Design", "QA", "Business", "Other"]),
-  role: z.enum(["Employee", "Project Manager"]),
+    email: z.string().trim().email("Enter a valid email address."),
+    phone: z
+      .string()
+      .trim()
+      .regex(/^[0-9]{10}$/, "Enter a 10-digit phone number."),
+    designation: z.string().trim().min(2, "Designation is required."),
+    department: z.enum(["Engineering", "Design", "QA", "Business", "Other"]),
+    role: z.enum(["Employee", "Project Manager"]),
 
-  joiningDate: z
-    .string()
-    .trim()
-    .min(1, "Joining date is required.")
-    .refine((value) => {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        return false;
-      }
+    joiningDate: z
+      .string()
+      .trim()
+      .min(1, "Joining date is required.")
+      .refine((value) => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          return false;
+        }
 
-      const [year, month, day] = value.split("-").map(Number);
-      const date = new Date(year, month - 1, day);
+        const [year, month, day] = value.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
 
-      return (
-        date.getFullYear() === year &&
-        date.getMonth() === month - 1 &&
-        date.getDate() === day
-      );
-    }, "Enter a valid joining date."),
+        return (
+          date.getFullYear() === year &&
+          date.getMonth() === month - 1 &&
+          date.getDate() === day
+        );
+      }, "Enter a valid joining date."),
 
-  status: z.enum(["Active", "Inactive"]),
-});
+    status: z.enum(["Active", "Inactive"]),
+
+    // Password fields
+    password: z.string().optional(),
+    confirmPassword: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.password && data.password.length < 8) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["password"],
+        message: "Password must be at least 8 characters.",
+      });
+    }
+
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "Passwords do not match.",
+      });
+    }
+  });
 
 type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
@@ -76,6 +98,8 @@ const emptyValues: EmployeeFormValues = {
   role: "Employee",
   joiningDate: new Date().toISOString().slice(0, 10),
   status: "Active",
+  password: "",
+  confirmPassword: "",
 };
 
 export default function Employees() {
@@ -115,15 +139,26 @@ export default function Employees() {
   const saveMutation = useMutation({
     mutationFn: async (values: EmployeeFormValues) => {
       const employee: Employee = {
-        ...values,
         id: editingEmployee?.id ?? `emp-${crypto.randomUUID()}`,
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+        designation: values.designation,
+        department: values.department,
+        role: values.role,
+        joiningDate: values.joiningDate,
+        status: values.status,
         createdAt: editingEmployee?.createdAt ?? new Date().toISOString(),
       };
 
       return editingEmployee
         ? updateEmployee(employee)
-        : createEmployee(employee);
+        : createEmployee({
+            ...employee,
+            password: values.password!,
+          });
     },
+
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["employees"] });
       setShowForm(false);
@@ -188,12 +223,25 @@ export default function Employees() {
       role: employee.role,
       joiningDate: employee.joiningDate,
       status: employee.status,
+      password: "",
+      confirmPassword: "",
     });
     setShowForm(true);
   }
 
   function onSubmit(values: EmployeeFormValues) {
     setFormError("");
+
+    if (!editingEmployee && !values.password) {
+      setFormError("Please enter an employee password.");
+      return;
+    }
+
+    if (!editingEmployee && !values.confirmPassword) {
+      setFormError("Please confirm the employee password.");
+      return;
+    }
+
     saveMutation.mutate(values);
   }
 
@@ -503,7 +551,35 @@ export default function Employees() {
                       placeholder="name@example.com"
                     />
                   </FormField>
+                  {!editingEmployee && (
+                    <>
+                      <FormField
+                        label="Password"
+                        error={form.formState.errors.password?.message}
+                      >
+                        <input
+                          {...form.register("password")}
+                          type="password"
+                          autoComplete="new-password"
+                          className="form-input"
+                          placeholder="Minimum 8 characters"
+                        />
+                      </FormField>
 
+                      <FormField
+                        label="Confirm Password"
+                        error={form.formState.errors.confirmPassword?.message}
+                      >
+                        <input
+                          {...form.register("confirmPassword")}
+                          type="password"
+                          autoComplete="new-password"
+                          className="form-input"
+                          placeholder="Re-enter password"
+                        />
+                      </FormField>
+                    </>
+                  )}
                   <FormField
                     label="Phone"
                     error={form.formState.errors.phone?.message}
