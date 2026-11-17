@@ -1,6 +1,8 @@
+
 import type { DemoUser } from "../types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 interface LoginResponse {
   success: boolean;
@@ -9,6 +11,7 @@ interface LoginResponse {
     token: string;
     user: {
       id: string;
+      employeeId: string;
       name: string;
       email: string;
       role: "Super Admin" | "Employee" | "Project Manager";
@@ -40,6 +43,7 @@ export async function login(
   return {
     user: {
       id: result.data.user.id,
+      employeeId: result.data.user.employeeId,
       name: result.data.user.name,
       email: result.data.user.email,
       role: result.data.user.role,

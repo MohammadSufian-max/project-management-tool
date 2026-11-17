@@ -7,6 +7,8 @@ import { loginSchema, type LoginFormValues } from "../schemas/loginSchema";
 import { login } from "../services/authService";
 import { useAuthStore } from "../store/authStore";
 
+import { requestNotificationPermission } from "../services/notificationService";
+
 export default function Login() {
   const navigate = useNavigate();
   const setSession = useAuthStore((state) => state.setSession);
@@ -38,6 +40,7 @@ export default function Login() {
 );
 
 setSession(user, token);
+requestNotificationPermission();
 navigate("/dashboard");
     } catch (err) {
       setError(

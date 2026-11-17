@@ -65,7 +65,10 @@ export const getAllProjects = async (
 );
     }
   }
-
+console.log("PROJECT FILTER DEBUG:", {
+  userId,
+  userRole,
+});
   const projects = await query.getMany();
 
   return projects.map(formatProject);

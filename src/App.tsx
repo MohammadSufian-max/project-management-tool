@@ -8,6 +8,7 @@ import Tasks from "./pages/Tasks";
 import Profile from "./pages/Profile";
 
 import ProjectDetails from "./pages/ProjectDetails";
+import NotificationListener from "./components/common/NotificationListener";
 
 function NotFoundPage() {
   return <h1>404 - Page Not Found</h1>;
@@ -15,6 +16,10 @@ function NotFoundPage() {
 
 export default function App() {
   return (
+
+    <>
+    
+   <NotificationListener />
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Login />} />
@@ -38,5 +43,6 @@ export default function App() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+     </>
   );
 }

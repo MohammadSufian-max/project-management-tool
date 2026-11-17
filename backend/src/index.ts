@@ -10,6 +10,7 @@ import { AppDataSource } from "./config/database";
 import { seedEmployee } from "./seed/employee.seed";
 import dashboardRoutes from "./routes/dashboard.routes";
 import profileRoutes from "./routes/profile.routes";
+import notificationRoutes from "./routes/notification.routes";
 
 
 const app = express();
@@ -34,6 +35,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 
 // Start server
@@ -49,9 +51,9 @@ const startServer = async () => {
     await seedEmployee();
 
     // Start Express server
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
-    });
+   app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
 
   } catch (error) {
     console.error("Database connection failed:", error);

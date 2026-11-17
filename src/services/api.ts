@@ -1,8 +1,16 @@
+
 import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 
+const isPhoneTunnel = window.location.hostname ===
+  "creates-exams-opinion-say.trycloudflare.com";
+
+const API_URL = isPhoneTunnel
+  ? "https://graphic-reward-george-bottles.trycloudflare.com/api"
+  : import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },

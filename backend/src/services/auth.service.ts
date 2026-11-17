@@ -54,15 +54,16 @@ export const loginUser = async (email: string, password: string) => {
     }
   );
 
-  return {
-    token,
-    user: {
-      id: employee.id,
-      name: employee.name,
-      email: employee.email,
-      role: employee.role,
-    },
-  };
+ return {
+  token,
+  user: {
+    id: employee.id,
+    employeeId: employee.id,
+    name: employee.name,
+    email: employee.email,
+    role: employee.role,
+  },
+};
 };
 
 // Change logged-in user's password

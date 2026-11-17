@@ -9,15 +9,14 @@ import {
   deleteTask,
 } from "../services/task.service";
 
+import { sendPushNotification } from "../services/notification.service";
+
 // GET all tasks based on user role
 export const getTasks = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
 
-    const tasks = await getAllTasks(
-      user.id,
-      user.role
-    );
+    const tasks = await getAllTasks(user.id, user.role);
 
     return res.status(200).json({
       success: true,
@@ -38,11 +37,7 @@ export const getTask = async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const user = (req as any).user;
 
-    const task = await getTaskById(
-      id,
-      user.id,
-      user.role
-    );
+    const task = await getTaskById(id, user.id, user.role);
 
     if (!task) {
       return res.status(404).json({
@@ -104,12 +99,26 @@ export const addTask = async (req: Request, res: Response) => {
       dueDate,
     });
 
+    // Notify assigned employee
+    try {
+      await sendPushNotification(
+        [task.assigneeId],
+        "New Task Assigned",
+        `You have been assigned a new task: ${task.title}`,
+        {
+          type: "task_assigned",
+          taskId: task.id,
+        }
+      );
+    } catch (notificationError) {
+      console.error("TASK ASSIGNMENT NOTIFICATION ERROR:", notificationError);
+    }
+
     return res.status(201).json({
       success: true,
       message: "Task created successfully",
       data: task,
     });
-
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to create task";
@@ -149,13 +158,11 @@ export const editTask = async (req: Request, res: Response) => {
     const user = (req as any).user;
     const data = req.body || {};
 
+    let previousAssigneeId: string | undefined;
+
     // Employee can update only their own task status
     if (user.role !== "Super Admin") {
-      const taskExists = await getTaskById(
-        id,
-        user.id,
-        user.role
-      );
+      const taskExists = await getTaskById(id, user.id, user.role);
 
       if (!taskExists) {
         return res.status(404).json({
@@ -164,7 +171,6 @@ export const editTask = async (req: Request, res: Response) => {
         });
       }
 
-      // Only status field is allowed
       const allowedFields = ["status"];
       const submittedFields = Object.keys(data);
 
@@ -186,6 +192,18 @@ export const editTask = async (req: Request, res: Response) => {
           message: "Invalid task status",
         });
       }
+    } else {
+      // Get old assignee before updating
+      const existingTask = await getTaskById(id, user.id, user.role);
+
+      if (!existingTask) {
+        return res.status(404).json({
+          success: false,
+          message: "Task not found",
+        });
+      }
+
+      previousAssigneeId = existingTask.assigneeId;
     }
 
     const task = await updateTask(id, data);
@@ -197,12 +215,42 @@ export const editTask = async (req: Request, res: Response) => {
       });
     }
 
+    // Only Super Admin task updates trigger notifications
+    if (user.role === "Super Admin") {
+      try {
+        if (previousAssigneeId !== task.assigneeId) {
+          // Task reassigned: notify only the new assignee
+          await sendPushNotification(
+            [task.assigneeId],
+            "Task Reassigned",
+            `A task has been assigned to you: ${task.title}`,
+            {
+              type: "task_reassigned",
+              taskId: task.id,
+            }
+          );
+        } else {
+          // Normal task update: notify current assignee
+          await sendPushNotification(
+            [task.assigneeId],
+            "Task Updated",
+            `Your task has been updated: ${task.title}`,
+            {
+              type: "task_updated",
+              taskId: task.id,
+            }
+          );
+        }
+      } catch (notificationError) {
+        console.error("TASK UPDATE NOTIFICATION ERROR:", notificationError);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       message: "Task updated successfully",
       data: task,
     });
-
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to update task";

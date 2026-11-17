@@ -11,15 +11,13 @@ import {
   getProjectTeam,
 } from "../services/project.service";
 
+import { sendPushNotification } from "../services/notification.service";
+
 // GET: All projects
 export const getProjects = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-
-    const projects = await getAllProjects(
-      user.id,
-      user.role
-    );
+    const projects = await getAllProjects(user.id, user.role);
 
     return res.status(200).json({
       success: true,
@@ -34,18 +32,13 @@ export const getProjects = async (req: Request, res: Response) => {
   }
 };
 
-
 // GET: Project by ID
 export const getProject = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
     const user = (req as any).user;
 
-    const project = await getProjectById(
-      id,
-      user.id,
-      user.role
-    );
+    const project = await getProjectById(id, user.id, user.role);
 
     if (!project) {
       return res.status(404).json({
@@ -65,6 +58,8 @@ export const getProject = async (req: Request, res: Response) => {
     });
   }
 };
+
+// POST create project
 
 // POST create project
 export const addProject = async (req: Request, res: Response) => {
@@ -106,18 +101,36 @@ export const addProject = async (req: Request, res: Response) => {
       isArchived,
     });
 
-    res.status(201).json({
+    // Notify assigned team members
+    try {
+      await sendPushNotification(
+        teamMemberIds,
+        "New Project Assigned",
+        `You have been assigned to a new project: ${name}`,
+        {
+          type: "project_created",
+          projectId: String(project.id),
+        }
+      );
+    } catch (notificationError) {
+      console.error("Project creation notification failed:", notificationError);
+    }
+
+    return res.status(201).json({
       success: true,
       message: "Project created successfully",
       data: project,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Create project error:", error);
+    return res.status(500).json({
       success: false,
       message: "Failed to create project",
     });
   }
 };
+
+
 
 // PUT update project
 export const editProject = async (req: Request, res: Response) => {
@@ -133,12 +146,28 @@ export const editProject = async (req: Request, res: Response) => {
       });
     }
 
+    // Notify updated project team members
+    try {
+      if (project.teamMemberIds.length > 0) {
+        await sendPushNotification(
+          project.teamMemberIds,
+          "Project Updated",
+          `The project "${project.name}" has been updated.`,
+          {
+            type: "project_updated",
+            projectId: project.id,
+          }
+        );
+      }
+    } catch (notificationError) {
+      console.error("PROJECT UPDATE NOTIFICATION ERROR:", notificationError);
+    }
+
     return res.status(200).json({
       success: true,
       message: "Project updated successfully",
       data: project,
     });
-
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to update project";
@@ -170,7 +199,6 @@ export const editProject = async (req: Request, res: Response) => {
 export const removeProject = async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
-
     const project = await deleteProject(id);
 
     if (!project) {
@@ -180,20 +208,18 @@ export const removeProject = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Project archived successfully",
       data: project,
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to delete project",
     });
   }
 };
-
-
 
 // GET all tasks of a specific project
 export const getTasksByProject = async (
@@ -230,9 +256,7 @@ export const getTasksByProject = async (
   }
 };
 
-
-// GET all team members of a specific project
-// GET: Project team members
+// GET project team members
 export const getTeamByProject = async (
   req: Request,
   res: Response

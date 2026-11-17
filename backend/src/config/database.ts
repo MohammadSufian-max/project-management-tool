@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { Employee } from "../entities/Employee";
 import { Project } from "../entities/Project";
 import { Task } from "../entities/Task";
+import { EmployeeDeviceToken } from "../entities/EmployeeDeviceToken";
 
 dotenv.config();
 
@@ -17,7 +18,12 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
 
-  entities: [Employee, Project, Task],
+  entities: [
+  Employee,
+  Project,
+  Task,
+  EmployeeDeviceToken,
+],
 
   synchronize: true,
   logging: true,
