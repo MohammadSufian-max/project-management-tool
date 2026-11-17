@@ -5,7 +5,6 @@ import api from "./api";
 
 export const requestNotificationPermission = async () => {
   try {
-    alert("1. Notification registration started");
 
     if (!("Notification" in window)) {
       alert("ERROR: Browser does not support notifications");
@@ -19,7 +18,7 @@ export const requestNotificationPermission = async () => {
       return null;
     }
 
-    alert("2. Notification permission granted");
+    
 
     const messaging = await getFirebaseMessaging();
 
@@ -28,7 +27,7 @@ export const requestNotificationPermission = async () => {
       return null;
     }
 
-    alert("3. Firebase Messaging initialized");
+    
 
     const registration = await navigator.serviceWorker.register(
       "/firebase-messaging-sw.js"
@@ -36,7 +35,7 @@ export const requestNotificationPermission = async () => {
 
     await navigator.serviceWorker.ready;
 
-    alert("4. Service worker registered");
+    
 
     const fcmToken = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
@@ -48,13 +47,13 @@ export const requestNotificationPermission = async () => {
       return null;
     }
 
-    alert("5. FCM token generated");
+    
 
     await api.post("/notifications/register-token", {
       token: fcmToken,
     });
 
-    alert("6. FCM token registered successfully");
+    
 
     return fcmToken;
   } catch (error) {
