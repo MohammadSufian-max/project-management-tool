@@ -10,6 +10,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
+import { unregisterNotificationToken } from "../services/notificationService";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -18,10 +19,12 @@ export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
-  function handleLogout() {
-    logout();
-    navigate("/login", { replace: true });
-  }
+  async function handleLogout() {
+  await unregisterNotificationToken();
+
+  logout();
+  navigate("/login", { replace: true });
+}
 
   const navLinks = [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },

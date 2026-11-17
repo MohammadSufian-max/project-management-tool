@@ -9,6 +9,29 @@ import { firebaseMessaging } from "../config/firebase";
 const tokenRepository = AppDataSource.getRepository(EmployeeDeviceToken);
 const employeeRepository = AppDataSource.getRepository(Employee);
 
+// Unregister current employee device token
+export const unregisterDeviceToken = async (
+  employeeId: string,
+  token: string
+) => {
+  const deviceToken = await tokenRepository.findOne({
+    where: {
+      token,
+      employee: {
+        id: employeeId,
+      },
+    },
+  });
+
+  if (!deviceToken) {
+    return false;
+  }
+
+  await tokenRepository.remove(deviceToken);
+
+  return true;
+};
+
 // Register or update employee device token
 export const registerDeviceToken = async (
   employeeId: string,
